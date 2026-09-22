@@ -15,9 +15,9 @@ easier to satisfy than "TP before SL." The fix is to walk forward through
 the path bar-by-bar and take whichever level is crossed first, with a
 conservative tie-break (stop-loss wins on a same-bar double-touch).
 
-We use this in the project's 5-minute-bar experiments below (see the
-project write-up) to explain a case where fixing this bug changed which
-label design looked "best."
+Fixing this in the underlying project changed which label design looked
+"best" under offline AUC — a design that looked strongest order-blind
+stopped looking strongest once evaluated order-aware.
 """
 from __future__ import annotations
 
@@ -26,7 +26,11 @@ import numpy as np
 
 def label_order_blind(highs: np.ndarray, lows: np.ndarray, take_profit: float, stop_loss: float) -> int:
     """1 if price ever reaches take_profit within the window, regardless of
-    whether stop_loss was crossed first. This is the biased version."""
+    whether stop_loss was crossed first. This is the biased version — `lows`
+    and `stop_loss` are accepted (and intentionally unused) only to keep the
+    same call signature as `label_order_aware`, so the two are a drop-in
+    swap for each other at call sites."""
+    del lows, stop_loss
     return int((highs >= take_profit).any())
 
 
