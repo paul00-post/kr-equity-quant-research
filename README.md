@@ -78,6 +78,35 @@ Given ~50% average cash allocation above, an obvious question: can that idle cas
 
 Commission-only cost (this ETF is exempt from Korea's securities transaction tax, unlike regular stocks); modeled at the level of individual cash-in/cash-out events rather than net daily cash change, since 101 of the days in this window had two or more offsetting cash events that a naive daily-net approach would have under-charged for. Event-level accounting added about 25% more modeled commission (₩756,964 → ₩948,516 over the window) and the result barely moved (+1.03pp → +0.98pp CAGR), so the naive version wasn't hiding much.
 
+### Statistical robustness checks
+
+Two Monte Carlo-style checks, run to address a more basic question than anything above: is any of this distinguishable from noise?
+
+**1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, ~1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
+
+| | Value |
+|---|---|
+| Actual MDD | -27.7% |
+| Reshuffled MDD — mean | -20.95% |
+| Reshuffled MDD — 5th/95th percentile | -29.57% / -14.79% |
+| Actual MDD's percentile in the reshuffled distribution | 8.3rd |
+
+The realized drawdown path was on the unlucky side — most reorderings of the exact same trades would have produced a smaller drawdown. Read this as "the CAGR isn't sequencing-dependent, but the specific -27.7% MDD partly is."
+
+**2. Signal permutation test — is Agent Cx's stock selection distinguishable from random?** Agent B's pool and every risk/position-sizing rule were left untouched; only Agent Cx's score was replaced with random noise (same per-day pass rate as the real percentile gate, so trade frequency is comparable — only *which* names pass is randomized). Reran the full backtest 1,000 times:
+
+| | Value |
+|---|---|
+| Random-signal CAGR — mean / median | 7.48% / 7.47% |
+| Random-signal CAGR — 95th percentile | 14.59% |
+| Random-signal CAGR — max of 1,000 runs | 23.29% |
+| **Actual CAGR (32.48%) exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** |
+| Random-signal MDD — mean / median | -29.14% / -27.71% (≈ actual -27.7%) |
+
+The real signal's CAGR clears every one of 1,000 random permutations — not marginal. Notably, MDD *doesn't* separate real from random (the random median, -27.71%, is almost identical to the actual result) — drawdown control here comes from the risk-management structure (regime filter, sector caps, stop losses), which stays fixed either way, not from stock selection. The return, on the other hand, comes overwhelmingly from Agent Cx actually picking the right names.
+
+One honest caveat: both permutation runs reuse the same fixed cooldown/regime parameters as the headline backtest, so this doesn't test or clear the meta-look-ahead issue in [Limitations](#limitations) — it isolates a different question (signal quality, not parameter selection) and that other caveat still applies on top of this.
+
 ## Approach
 
 Two independent signal sources, combined by intersection rather than by blending scores into one number:
@@ -150,7 +179,7 @@ Requires Python 3.10+. Each `src/` file is self-contained and runs standalone (n
 
 ## Limitations
 
-- Backtest results, not a live track record. The final risk-management parameters (regime filter threshold, re-entry cooldown) were arrived at after having already seen how a 2026 drawdown period played out — a form of meta-look-ahead that likely makes the backtest somewhat optimistic. Live performance should be expected to be more modest.
+- Backtest results, not a live track record. A walk-forward selection process for the regime filter and re-entry cooldown (using, for each year, only data from prior years — genuinely honest at the selection step) picked "off" for every year through 2025 and only turned them on for 2026. The backtest above doesn't run that year-by-year schedule, though — it applies the 2026-selected setting as a single fixed constant across the entire 2019–2026 window. That means 2019–2025's results also benefit from a safeguard that an honest process wouldn't have applied to them at the time; it was fixed that way only once 2026 had already shown why it would help. Live performance should be expected to be more modest than the backtest above.
 - Universe and cost assumptions are Korea-specific (a KOSPI200-adjacent large-cap universe, Korean transaction tax); nothing here is a claim that the approach generalizes to other markets as-is.
 
 ## Tech stack
