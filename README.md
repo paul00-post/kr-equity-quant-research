@@ -62,6 +62,22 @@ A few of these are worth reading correctly rather than at face value:
 - **Doubling the slippage assumption costs about 2.6 percentage points of CAGR, not the whole edge.** That's a reasonable sanity check that the result isn't a knife-edge function of the exact cost assumptions in [`src/transaction_costs.py`](src/transaction_costs.py) — though it's a stress test of one assumption, not proof of robustness to all of them.
 - Strategy capacity (how much capital this scales to before market impact erodes the edge) isn't estimated here — it would need order-book/liquidity data this project doesn't have, so no number is given rather than a guessed one.
 
+### Operational refinement: idle-cash parking (tested, not folded into the headline numbers)
+
+Given ~50% average cash allocation above, an obvious question: can that idle cash earn something instead of sitting at 0%? Tested one approach — parking it in a money-market-rate ETF (KODEX CD금리액티브, ticker 459580) between signals, using the exact same stock-order flow the strategy already uses for regular trades (no new account, no transfer step).
+
+**Why not CMA/RP directly, which would be the more natural fit?** It would — near-instant liquidity, essentially zero price risk. But at this specific broker, a CMA sub-account can't be used to place stock orders directly, and there's no transfer API to move cash from CMA into the trading sub-account programmatically. That's a brokerage account/API limitation, not a property of RP/CMA as an instrument (and it isn't a deposit-insurance question either — the ETF route below isn't deposit-insured either, so that's not what's driving the choice). The money-market ETF was chosen specifically because it trades through the exact same stock-order API already in use, sidestepping that limitation entirely.
+
+**Limitation on the test itself:** this ETF only has real trading history from 2023-06-08 — it didn't exist for most of the 2019–2026 backtest window. So this is only tested on 2023-06-08–2026-09-04 (~3.2 years), which is also why it isn't merged into the headline 2019–2026 table above — the two aren't the same period, and splicing a partial-period improvement into a full-period number is exactly the kind of thing this repo has tried to avoid elsewhere (see [BUGS.md](BUGS.md)).
+
+| | No parking (cash earns 0%) | ETF-parked |
+|---|---|---|
+| CAGR | 43.22% | **44.20%** |
+| MDD | -27.7% | **-27.0%** |
+| CAGR / \|MDD\| | 1.56 | **1.64** |
+
+Commission-only cost (this ETF is exempt from Korea's securities transaction tax, unlike regular stocks); modeled at the level of individual cash-in/cash-out events rather than net daily cash change, since 101 of the days in this window had two or more offsetting cash events that a naive daily-net approach would have under-charged for. Event-level accounting added about 25% more modeled commission (₩756,964 → ₩948,516 over the window) and the result barely moved (+1.03pp → +0.98pp CAGR), so the naive version wasn't hiding much.
+
 ## Approach
 
 Two independent signal sources, combined by intersection rather than by blending scores into one number:
