@@ -147,6 +147,10 @@ Requires Python 3.10+. Each `src/` file is self-contained and runs standalone (n
 - **Index membership** — `pykrx`, pulling KRX's own published KOSPI200 constituent files per rebalance date. This is what lets the point-in-time universe in [`src/point_in_time_universe.py`](src/point_in_time_universe.py) reflect actual historical membership rather than a reconstruction. Worth knowing before trusting a reconstructed one: measured against the official files at the same date, a market-cap-based approximation of "the top 200" differed on ~17% of names. That's why the Agent Cx side switched to the official source — Agent B keeps the approximation deliberately, and the disagreement between the two is the intersection filter described above.
 - **Daily prices** — FinanceDataReader, cached to local Parquet.
 
+## AI assistance
+
+Built with Claude Code (Anthropic) as a research/pair-programming assistant throughout — implementation, debugging, and this writeup included. Research direction, validation decisions, and what to reject were mine.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). The code here is illustrative infrastructure, not the trading strategy itself.
