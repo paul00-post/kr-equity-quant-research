@@ -69,12 +69,12 @@ Two independent signal sources, combined by intersection rather than by blending
 ```mermaid
 flowchart TD
     subgraph AgentB["Agent B — fundamentals"]
-        B1["Market-cap-approximated<br/>large-cap universe"] --> B2["Factor model ranking"]
+        B1["Market-cap-approximated<br/>large-cap universe"] --> B2["XGBoost ranker<br/>(rank:ndcg)"]
         B2 --> B3["Daily candidate pool<br/>(per-sector cap applied)"]
     end
 
     subgraph AgentCx["Agent Cx — price action / ML"]
-        C1["Official KOSPI200<br/>point-in-time membership"] --> C2["XGBoost model"]
+        C1["Official KOSPI200<br/>point-in-time membership"] --> C2["XGBoost classifier<br/>(binary:logistic)"]
         C1 --> C3["CNN-LSTM model"]
         C2 --> C4["Blended cross-sectional<br/>percentile score"]
         C3 --> C4
@@ -88,8 +88,8 @@ flowchart TD
     RISK --> POS["Position<br/>(timer / stop / target exit)"]
 ```
 
-- **Agent B** — a fundamentals/market-cap-based factor model that ranks a self-computed large-cap universe (a market-cap approximation, not the official index) and produces a daily candidate pool (with a per-sector cap, so the pool can't collapse into one hot sector).
-- **Agent Cx** — a technical/price-action model (XGBoost + a CNN-LSTM variant, blended) that scores stocks within the **actual, point-in-time official KOSPI200 membership**.
+- **Agent B** — an XGBoost *ranking* model (`rank:ndcg`) trained on fundamentals, ranking a self-computed large-cap universe (a market-cap approximation, not the official index) to produce a daily candidate pool (with a per-sector cap, so the pool can't collapse into one hot sector).
+- **Agent Cx** — a technical/price-action signal blending an XGBoost *classifier* (`binary:logistic`) with a CNN-LSTM variant, scoring stocks within the **actual, point-in-time official KOSPI200 membership**. (A classifier here, not a ranker like Agent B — the two agents were developed at different points in the project rather than to a shared design spec.)
 - A stock only becomes a candidate when it clears **both** filters on the same day — i.e. when *both* a market-cap-based approximation and the official index agree it belongs in the large-cap set. This is a deliberate design choice, not an oversight: the two universes disagree on roughly 15–20% of names at any given time, and requiring agreement between two independently-derived definitions turned out to filter better than either one alone (tested directly, not assumed). The tradable universe is therefore this intersection, not "KOSPI200" in the strict sense.
 
 Entries, stop-losses (volatility-based), and profit targets follow a fixed rule set; position risk is managed with per-sector caps and a drawdown-triggered regime filter that blocks new entries during KOSPI-wide selloffs. The exact numeric thresholds for all of this are withheld — the *structure* is what's documented here.
