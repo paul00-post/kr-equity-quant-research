@@ -49,7 +49,7 @@ The headline CAGR comparison above isn't apples-to-apples on its own — buy-and
 | Average cash allocation | 50.4% (i.e. ~49.6% average market exposure) |
 | Annualized Sharpe ratio | 1.59 |
 | Total trades (2019–2026) | 373 |
-| Win rate | 44.0% |
+| Win rate | 44.0% (gross and net of the ~0.41% round-trip cost — identical; see note below) |
 | Average hold time | 12.4 trading days |
 | Equal-weight universe benchmark (avg. return of all PIT KOSPI200 members, 2019–2026) | 2.04× cumulative |
 | Cost sensitivity: CAGR at 2× assumed slippage (0.41% → 0.61% round-trip) | 29.90% (vs. 32.48% base) |
@@ -57,7 +57,7 @@ The headline CAGR comparison above isn't apples-to-apples on its own — buy-and
 A few of these are worth reading correctly rather than at face value:
 
 - **~50% average exposure while still beating a fully-invested benchmark is the more interesting number than the CAGR itself** — the strategy achieved its return profile with roughly half its capital sitting in cash on an average day, not by being in the market more aggressively than buy-and-hold.
-- **44% win rate is not a red flag on its own.** The exit rules are asymmetric by design — the profit target is set further from entry than the stop-loss — so more small losses than wins is expected. What matters is the per-trade expectancy (implied by the CAGR above), not the win rate in isolation.
+- **44% win rate is not a red flag on its own.** The exit rules are asymmetric by design — the profit target is set further from entry than the stop-loss — so more small losses than wins is expected. What matters is the per-trade expectancy (implied by the CAGR above), not the win rate in isolation. It's defined as "exit price above entry price," checked both before and after the ~0.41% round-trip cost — 0 of 373 trades flip from win to loss once costs are applied (average gross per-trade return is +2.63%, well clear of the cost), so the number isn't hiding a pile of costs-flip-it-negative trades the way a tighter-margin strategy's might.
 - **The equal-weight universe comparison is the more honest benchmark than the cap-weighted KOSPI200 ETF.** A cap-weighted index can be dominated by a handful of mega-caps; an approach that only beats the cap-weighted index but not the average stock in its own universe would be a much weaker result. Here the gap is *larger* against the equal-weight benchmark (8.65× vs. 2.04×) than against the cap-weighted one (8.65× vs. 4.68×).
 - **Doubling the slippage assumption costs about 2.6 percentage points of CAGR, not the whole edge.** That's a reasonable sanity check that the result isn't a knife-edge function of the exact cost assumptions in [`src/transaction_costs.py`](src/transaction_costs.py) — though it's a stress test of one assumption, not proof of robustness to all of them.
 - Strategy capacity (how much capital this scales to before market impact erodes the edge) isn't estimated here — it would need order-book/liquidity data this project doesn't have, so no number is given rather than a guessed one.
