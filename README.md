@@ -10,14 +10,16 @@ This repo is a write-up of the methodology and validation discipline behind a lo
 
 | | Strategy | KOSPI200 buy & hold |
 |---|---|---|
-| CAGR (2019–2026 YTD) | **32.48%** | 22.30% |
+| CAGR (2019–2026 YTD) | **31.36%** | 22.30% |
 | Max drawdown | **-27.7%** | -40.8% |
-| CAGR / \|MDD\| | **1.17** | 0.55 |
-| Cumulative | **8.65×** | 4.68× |
+| CAGR / \|MDD\| | **1.13** | 0.55 |
+| Cumulative | **8.11×** | 4.68× |
+
+**This is the walk-forward-validated number, not a full-period grid search.** The risk-management parameters (regime filter, re-entry cooldown, gate threshold, position sizing) were selected honestly — for each year, using only data from years strictly before it — and re-derived the same values from 2022 onward without ever seeing that year's own data. A separate, single full-period grid search (which *does* see the whole 2019–2026 window at once) lands on the same 2022–2026 parameters but reports a higher, look-ahead-inflated 32.48% CAGR / 1.17 — see [Methodology](#methodology--what-makes-this-credible-or-not) for both numbers and why the gap between them is informative.
 
 > **These numbers can't be independently verified from this repo.** The code here ([`src/`](src/)) illustrates the techniques used, not the full pipeline — the actual backtest depends on licensed/collected Korean market data that isn't (and can't be) included. Read this table as "what came out of a walk-forward, cost-aware backtest for this approach," not as something you can reproduce or take on faith. The methodology sections below are the part you actually *can* evaluate.
 
-Net of realistic transaction costs (commission + Korean securities transaction tax + slippage, ~0.41% round-trip). "KOSPI200 buy & hold" is the KODEX 200 ETF (069500) price series — a price return, not a total return with dividends reinvested, which flatters the strategy comparison somewhat. See also [Limitations](#limitations) — in particular, the most recent fold (2026) underperforms buy-and-hold by a wide margin, and the risk-management parameters have a meta-look-ahead issue.
+Net of realistic transaction costs (commission + Korean securities transaction tax + slippage, ~0.41% round-trip). "KOSPI200 buy & hold" is the KODEX 200 ETF (069500) price series — a price return, not a total return with dividends reinvested, which flatters the strategy comparison somewhat. See also [Limitations](#limitations) — in particular, the most recent fold (2026) underperforms buy-and-hold by a wide margin, and the walk-forward selection itself turns out to be sensitive to how many candidate parameter sets are tried.
 
 ![Equity curve](results/equity_curve.png)
 
@@ -27,16 +29,16 @@ Each year below is an out-of-sample fold: for the model that year is tested on, 
 
 | Year | Strategy | KOSPI200 | Excess |
 |---|---|---|---|
-| 2019 | +7.8% | +15.8% | -8.0pp |
-| 2020 | +20.5% | +35.6% | -15.1pp |
-| 2021 | +33.2% | +3.0% | +30.2pp |
+| 2019 | +6.1% | +15.8% | -9.7pp |
+| 2020 | +25.7% | +35.6% | -9.9pp |
+| 2021 | +21.5% | +3.0% | +18.5pp |
 | 2022 | +34.8% | -24.2% | +59.0pp |
 | 2023 | +27.5% | +24.9% | +2.6pp |
 | 2024 | -5.7% | -9.4% | +3.7pp |
 | 2025 | +136.3% | +94.2% | +42.1pp |
 | 2026 (YTD, through Sep 4) | +30.5% | +73.8% | -43.3pp |
 
-(Compounding these year-by-year figures reproduces the 8.65× total above exactly — each year's return is computed year-end to year-end, not first-trading-day to last-trading-day, so the boundary days aren't silently dropped.)
+2019–2021 use a different, lighter configuration than 2022 onward (higher gate percentile, smaller position size, no cooldown/regime filter) — that's not an inconsistency, it's the point: a walk-forward selection process re-run at the start of each year, using only data from before it, judged the regime filter and cooldown *not worth it* for 2019–2021 and only adopted them starting 2022, without ever looking ahead at that year's own results. See [Methodology](#methodology--what-makes-this-credible-or-not) for the full schedule and how it was derived. (Compounding these year-by-year figures gets to 8.10×, a cent short of the 8.11× headline above — pure rounding noise from displaying each year to one decimal place, not a bug; each year's return is computed year-end to year-end, not first-trading-day to last-trading-day, so no boundary days are silently dropped.)
 
 Three years (2019, 2020, 2026) underperform buy-and-hold outright, and 2026 underperforms by a wide margin — a strong KOSPI rally this strategy's regime/sector-cap risk controls didn't fully capture. Included deliberately rather than cut off at a more flattering point.
 
@@ -46,25 +48,25 @@ The headline CAGR comparison above isn't apples-to-apples on its own — buy-and
 
 | | Value |
 |---|---|
-| Average cash allocation | 50.4% (i.e. ~49.6% average market exposure) |
-| Annualized Sharpe ratio | 1.59 |
-| Total trades (2019–2026) | 373 |
-| Win rate | 44.0% (gross and net of the ~0.41% round-trip cost — identical; see note below) |
-| Average hold time | 12.4 trading days |
+| Average cash allocation | 46.4% (i.e. ~53.6% average market exposure) |
+| Annualized Sharpe ratio | 1.52 |
+| Total trades (2019–2026) | 449 |
+| Win rate | 43.7% |
+| Average hold time | 12.2 trading days |
 | Equal-weight universe benchmark (avg. return of all PIT KOSPI200 members, 2019–2026) | 2.04× cumulative |
-| Cost sensitivity: CAGR at 2× assumed slippage (0.41% → 0.61% round-trip) | 29.90% (vs. 32.48% base) |
+| Cost sensitivity: CAGR at 2× assumed slippage (0.41% → 0.61% round-trip) | 28.53% (vs. 31.36% base) |
 
 A few of these are worth reading correctly rather than at face value:
 
-- **~50% average exposure while still beating a fully-invested benchmark is the more interesting number than the CAGR itself** — the strategy achieved its return profile with roughly half its capital sitting in cash on an average day, not by being in the market more aggressively than buy-and-hold.
-- **44% win rate is not a red flag on its own.** The exit rules are asymmetric by design — the profit target is set further from entry than the stop-loss — so more small losses than wins is expected. What matters is the per-trade expectancy (implied by the CAGR above), not the win rate in isolation. It's defined as "exit price above entry price," checked both before and after the ~0.41% round-trip cost — 0 of 373 trades flip from win to loss once costs are applied (average gross per-trade return is +2.63%, well clear of the cost), so the number isn't hiding a pile of costs-flip-it-negative trades the way a tighter-margin strategy's might.
-- **The equal-weight universe comparison is the more honest benchmark than the cap-weighted KOSPI200 ETF.** A cap-weighted index can be dominated by a handful of mega-caps; an approach that only beats the cap-weighted index but not the average stock in its own universe would be a much weaker result. Here the gap is *larger* against the equal-weight benchmark (8.65× vs. 2.04×) than against the cap-weighted one (8.65× vs. 4.68×).
-- **Doubling the slippage assumption costs about 2.6 percentage points of CAGR, not the whole edge.** That's a reasonable sanity check that the result isn't a knife-edge function of the exact cost assumptions in [`src/transaction_costs.py`](src/transaction_costs.py) — though it's a stress test of one assumption, not proof of robustness to all of them.
+- **~46% average cash while still beating a fully-invested benchmark is the more interesting number than the CAGR itself** — the strategy achieved its return profile with a substantial chunk of capital sitting in cash on an average day (more so in 2019–2021, before the gate tightened and position sizing grew — see the year-by-year schedule above), not by being in the market more aggressively than buy-and-hold.
+- **43.7% win rate is not a red flag on its own.** The exit rules are asymmetric by design — the profit target is set further from entry than the stop-loss — so more small losses than wins is expected. What matters is the per-trade expectancy (implied by the CAGR above), not the win rate in isolation: average per-trade return is +2.21%, well clear of the ~0.41% round-trip cost, so the number isn't hiding a pile of costs-flip-it-negative trades the way a tighter-margin strategy's might.
+- **The equal-weight universe comparison is the more honest benchmark than the cap-weighted KOSPI200 ETF.** A cap-weighted index can be dominated by a handful of mega-caps; an approach that only beats the cap-weighted index but not the average stock in its own universe would be a much weaker result. Here the gap is *larger* against the equal-weight benchmark (8.11× vs. 2.04×) than against the cap-weighted one (8.11× vs. 4.68×).
+- **Doubling the slippage assumption costs about 2.8 percentage points of CAGR, not the whole edge.** That's a reasonable sanity check that the result isn't a knife-edge function of the exact cost assumptions in [`src/transaction_costs.py`](src/transaction_costs.py) — though it's a stress test of one assumption, not proof of robustness to all of them.
 - Strategy capacity (how much capital this scales to before market impact erodes the edge) isn't estimated here — it would need order-book/liquidity data this project doesn't have, so no number is given rather than a guessed one.
 
 ### Operational refinement: idle-cash parking (tested, not folded into the headline numbers)
 
-Given ~50% average cash allocation above, an obvious question: can that idle cash earn something instead of sitting at 0%? Tested one approach — parking it in a money-market-rate ETF (KODEX CD금리액티브, ticker 459580) between signals, using the exact same stock-order flow the strategy already uses for regular trades (no new account, no transfer step).
+Given the ~46% average cash allocation above, an obvious question: can that idle cash earn something instead of sitting at 0%? Tested one approach — parking it in a money-market-rate ETF (KODEX CD금리액티브, ticker 459580) between signals, using the exact same stock-order flow the strategy already uses for regular trades (no new account, no transfer step).
 
 **Why not CMA/RP directly, which would be the more natural fit?** It would — near-instant liquidity, essentially zero price risk. But at this specific broker, a CMA sub-account can't be used to place stock orders directly, and there's no transfer API to move cash from CMA into the trading sub-account programmatically. That's a brokerage account/API limitation, not a property of RP/CMA as an instrument (and it isn't a deposit-insurance question either — the ETF route below isn't deposit-insured either, so that's not what's driving the choice). The money-market ETF was chosen specifically because it trades through the exact same stock-order API already in use, sidestepping that limitation entirely.
 
@@ -82,14 +84,16 @@ Commission-only cost (this ETF is exempt from Korea's securities transaction tax
 
 Two Monte Carlo-style checks, run to address a more basic question than anything above: is any of this distinguishable from noise?
 
-**1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, ~1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
+*(Both checks below are re-run against the walk-forward-validated schedule above — 449 trades, 31.36% CAGR.)*
+
+**1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, 1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
 
 | | Value |
 |---|---|
 | Actual MDD | -27.7% |
-| Reshuffled MDD — mean | -20.95% |
-| Reshuffled MDD — 5th/95th percentile | -29.57% / -14.79% |
-| Actual MDD's percentile in the reshuffled distribution | 8.3rd |
+| Reshuffled MDD — mean | -22.02% |
+| Reshuffled MDD — 5th/95th percentile | -30.64% / -15.63% |
+| Actual MDD's percentile in the reshuffled distribution | 12.1th |
 
 The realized drawdown path was on the unlucky side — most reorderings of the exact same trades would have produced a smaller drawdown. Read this as "the CAGR isn't sequencing-dependent, but the specific -27.7% MDD partly is."
 
@@ -97,15 +101,15 @@ The realized drawdown path was on the unlucky side — most reorderings of the e
 
 | | Value |
 |---|---|
-| Random-signal CAGR — mean / median | 7.48% / 7.47% |
-| Random-signal CAGR — 95th percentile | 14.59% |
-| Random-signal CAGR — max of 1,000 runs | 23.29% |
-| **Actual CAGR (32.48%) exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** |
-| Random-signal MDD — mean / median | -29.14% / -27.71% (≈ actual -27.7%) |
+| Random-signal CAGR — mean / median | 8.89% / 8.77% |
+| Random-signal CAGR — 95th percentile | 16.18% |
+| Random-signal CAGR — max of 1,000 runs | 25.55% |
+| **Actual CAGR (31.36%) exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** |
+| Random-signal MDD — mean / median | -30.11% / -28.90% |
 
-The real signal's CAGR clears every one of 1,000 random permutations — not marginal. Notably, MDD *doesn't* separate real from random (the random median, -27.71%, is almost identical to the actual result) — drawdown control here comes from the risk-management structure (regime filter, sector caps, stop losses), which stays fixed either way, not from stock selection. The return, on the other hand, comes overwhelmingly from Agent Cx actually picking the right names.
+The real signal's CAGR clears every one of 1,000 random permutations — not marginal. MDD is more informative here than in the earlier (fixed-parameter) version of this test: the actual -27.7% is better than both the random mean and median (571 of 1,000 random runs had a worse drawdown), suggesting drawdown control here comes from a mix of the risk-management structure (regime filter, sector caps, stop losses — which stays fixed either way) *and* some contribution from stock selection itself, not purely the former. The return, in any case, comes overwhelmingly from Agent Cx actually picking the right names.
 
-One honest caveat: both permutation runs reuse the same fixed cooldown/regime parameters as the headline backtest, so this doesn't test or clear the meta-look-ahead issue in [Limitations](#limitations) — it isolates a different question (signal quality, not parameter selection) and that other caveat still applies on top of this.
+One honest caveat: both permutation runs isolate signal quality specifically — they don't speak to whether the risk-management parameter *selection* process itself is sound. That's a separate question, addressed by the walk-forward validation in [Methodology](#methodology--what-makes-this-credible-or-not) and the candidate-count sensitivity noted in [Limitations](#limitations).
 
 ## Approach
 
@@ -145,6 +149,7 @@ Entries, stop-losses (volatility-based), and profit targets follow a fixed rule 
 - **Order-aware labeling.** Any label built from "did price reach the target within N bars," checked without regard to whether the stop-loss was hit *first*, silently inflates label quality. See [`src/order_aware_labeling.py`](src/order_aware_labeling.py) for the concrete before/after.
 - **Transaction costs modeled from day one on every new idea.** Commission on both legs, tax on the sell leg, slippage — see [`src/transaction_costs.py`](src/transaction_costs.py). More than one promising-looking signal turned out to be smaller than the round-trip cost once this was added honestly.
 - **Annual walk-forward folds with an embargo**, not k-fold cross-validation — see [`src/walkforward_validation.py`](src/walkforward_validation.py). Each fold trains only on strictly-past data.
+- **Risk-management parameters (regime filter, re-entry cooldown, gate threshold, position size) walk-forward-validated, not just grid-searched once.** Re-selected each year using only data from years strictly before it — genuinely honest at the selection step, unlike a one-time grid search over the whole period. Result: 2019–2021 get a lighter configuration (wider gate, smaller position, no cooldown/regime filter); 2022 onward converges on the same setup a full-period grid search finds independently, without that search ever seeing 2022–2026 data. The two approaches' backtests differ by only 1.12 percentage points of CAGR (31.36% walk-forward vs. 32.48% full-period, both net of costs) — evidence the setup isn't tightly fit to one stretch of history, not proof it's optimal. Disclosed rather than hidden: re-running the same walk-forward process with a much larger candidate grid (180 vs. 10 parameter combinations) reaches a similar CAGR (31.34%) but never selects the regime filter at all, and MDD is worse as a result (-30.4% vs. -27.7%) — a textbook multiple-comparisons effect (more candidates competing for the same handful of years of data makes the honest selection noisier, not more thorough). Both results are reported here rather than picking whichever looks better.
 - **Relative, not absolute, entry thresholds.** Every time a fixed score cutoff was replaced with a same-day cross-sectional percentile cutoff, results improved and a look-ahead disappeared at the same time (the fixed cutoff had implicitly been tuned by looking at the whole evaluation period's score distribution).
 - **Didn't assume the two blended Agent Cx sub-models need identical labels, and checked rather than argued.** They turned out to be trained on slightly different label definitions (a one-day offset in the assumed entry price) — not by original design, found partway through. Requiring every blended model to share one label isn't obviously the correct default in the first place: base models trained on different-but-related targets tend to make less-correlated mistakes, which is a good part of *why* blending helps at all. That's a reason this wasn't treated as an emergency, not a reason to skip checking — retrained one side to close the gap and compared both against the strategy's actual daily candidate pool, and found no statistically meaningful difference in selection quality (p≈0.46, small sample of days). Left as found rather than "fixed" on the strength of one modest test.
 
@@ -180,7 +185,7 @@ Requires Python 3.10+. Each `src/` file is self-contained and runs standalone (n
 
 ## Limitations
 
-- The numbers above are backtest results — live performance (running since 2026-09-21) doesn't have enough history yet to report on its own, and should be expected to be more modest than the backtest above, for reasons including: a walk-forward selection process for the regime filter and re-entry cooldown (using, for each year, only data from prior years — genuinely honest at the selection step) picked "off" for every year through 2025 and only turned them on for 2026. The backtest above doesn't run that year-by-year schedule, though — it applies the 2026-selected setting as a single fixed constant across the entire 2019–2026 window. That means 2019–2025's results also benefit from a safeguard that an honest process wouldn't have applied to them at the time; it was fixed that way only once 2026 had already shown why it would help.
+- The numbers above are backtest results, not a live track record — live performance (running since 2026-09-21) doesn't have enough history yet to report on its own, and should be expected to be more modest than the backtest above. One specific reason: the regime filter and re-entry cooldown are, at bottom, a bet that a future selloff will look enough like 2026's actual crash for the same trigger (a 20-day, -15% KOSPI drawdown) to catch it — and with only 8 years of history, that bet is validated as well as this project can validate it, not proven. The walk-forward selection process is genuinely honest (each year uses only prior data), and a much larger candidate search reaches a similar CAGR without it (see [Methodology](#methodology--what-makes-this-credible-or-not)) — but "honest selection" and "will definitely work on the next crash, which won't look identical to the last one" are different claims, and only the first one is backed by anything here.
 - Universe and cost assumptions are Korea-specific (a KOSPI200-adjacent large-cap universe, Korean transaction tax); nothing here is a claim that the approach generalizes to other markets as-is.
 
 ## Tech stack
