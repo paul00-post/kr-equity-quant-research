@@ -27,20 +27,22 @@ Net of realistic transaction costs (commission + Korean securities transaction t
 
 Each year below is an out-of-sample fold: for the model that year is tested on, all training data is strictly earlier (annual walk-forward, no k-fold shuffling — see [`src/walkforward_validation.py`](src/walkforward_validation.py)). Shown per-year rather than only as one aggregate number, since an eight-year average can hide a lot of variance:
 
-| Year | Strategy | KOSPI200 | Excess |
-|---|---|---|---|
-| 2019 | +6.1% | +15.8% | -9.7pp |
-| 2020 | +25.7% | +35.6% | -9.9pp |
-| 2021 | +21.5% | +3.0% | +18.5pp |
-| 2022 | +34.8% | -24.2% | +59.0pp |
-| 2023 | +27.5% | +24.9% | +2.6pp |
-| 2024 | -5.7% | -9.4% | +3.7pp |
-| 2025 | +136.3% | +94.2% | +42.1pp |
-| 2026 (YTD, through Sep 4) | +30.5% | +73.8% | -43.3pp |
+| Year | Strategy | KOSPI200 | Excess vs. KOSPI200 | Universe (equal-weight) | Excess vs. universe |
+|---|---|---|---|---|---|
+| 2019 | +6.1% | +15.8% | -9.7pp | -1.2% | +7.3pp |
+| 2020 | +25.7% | +35.6% | -9.9pp | +27.4% | -1.7pp |
+| 2021 | +21.5% | +3.0% | +18.5pp | +8.4% | +13.1pp |
+| 2022 | +34.8% | -24.2% | +59.0pp | -18.2% | +53.0pp |
+| 2023 | +27.5% | +24.9% | +2.6pp | +9.3% | +18.2pp |
+| 2024 | -5.7% | -9.4% | +3.7pp | -4.3% | -1.4pp |
+| 2025 | +136.3% | +94.2% | +42.1pp | +47.0% | +89.3pp |
+| 2026 (YTD, through Sep 4) | +30.5% | +73.8% | -43.3pp | +18.6% | +11.9pp |
+
+"Universe" is the equal-weight average return of all point-in-time KOSPI200 members that year (year-end to year-end, same method as the equal-weight benchmark in the diagnostics below; compounds to 2.04×) — a harder test than the cap-weighted index, since a handful of mega-caps can't carry it.
 
 2019–2021 use a different, lighter configuration than 2022 onward (higher gate percentile, smaller position size, no cooldown/regime filter) — that's not an inconsistency, it's the point: a walk-forward selection process re-run at the start of each year, using only data from before it, judged the regime filter and cooldown *not worth it* for 2019–2021 and only adopted them starting 2022, without ever looking ahead at that year's own results. See [Methodology](#methodology--what-makes-this-credible-or-not) for the full schedule and how it was derived. (Compounding these year-by-year figures gets to 8.10×, a cent short of the 8.11× headline above — pure rounding noise from displaying each year to one decimal place, not a bug; each year's return is computed year-end to year-end, not first-trading-day to last-trading-day, so no boundary days are silently dropped.)
 
-Three years (2019, 2020, 2026) underperform buy-and-hold outright, and 2026 underperforms by a wide margin — a strong KOSPI rally this strategy's regime/sector-cap risk controls didn't fully capture. Included deliberately rather than cut off at a more flattering point.
+Three years (2019, 2020, 2026) underperform buy-and-hold outright, and 2026 underperforms by a wide margin — a strong KOSPI rally this strategy's regime/sector-cap risk controls didn't fully capture. Against the equal-weight universe the picture is better: the strategy wins 6 of 8 years, and the two it loses (2020: -1.7pp, 2024: -1.4pp) are both narrow — including 2026, where the strategy beats the average stock in its universe by +11.9pp even while lagging the cap-weighted index (the index's +73.8% versus only +18.6% for the average stock suggests the rally was narrow, though that's an inference from these two numbers, not something separately tested). Included deliberately rather than cut off at a more flattering point.
 
 ### Additional diagnostics
 
