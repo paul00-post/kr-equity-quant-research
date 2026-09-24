@@ -1,63 +1,41 @@
 # Bugs found and fixed
 
-Concrete before/after numbers for mistakes that were caught during this project, rather than a vague claim that "mistakes were made." Each one changed a real result, not just a code comment.
+Concrete before/after numbers for mistakes caught during this project, rather than a vague claim that "mistakes were made." All of them were found and fixed during development, and each entry says how it relates to the current model. Numbers are from the research log at the time each bug was found, on the pipeline as configured then — not necessarily the final system.
 
-*Items 1–4 are from an experimental intraday signal project, separate from the main strategy behind the [results](README.md) above — noted per item below. Item 5 is about this repo itself.*
+## 1. Fundamentals factors used today's share count for past dates
 
-## 1. Order-blind labels looked better than order-aware ones — and were wrong
+*Fixed during development; the fix is part of the current model — its fundamentals features are built on the masked dataset described below.*
 
-*(experimental intraday signal, not the main strategy)*
+Market-cap-based factors (price-to-sales, PEG, cash-to-market-cap) were computed with the latest share count on every historical date. Stock splits were already handled by adjusted prices, but bonus issues, rights offerings and buybacks change the share count without changing the price series — so past market caps were quietly distorted with information from the future.
 
-An early signal design labeled a trade "1" if price ever reached a take-profit level within a future window, without checking whether the stop-loss was hit *first*. This is easier to satisfy than "target before stop," so it silently inflates label quality for any setup where the stop is wide relative to the target.
+- Evidence: where a company's share count had moved by more than ±5%, these factors' single-factor IC was about 2× stronger than where it hadn't.
+- Fix: naively rescaling by the share-count ratio would have corrupted the split-adjusted cases, so rows were classified as clean or changed using point-in-time filings, and the nine affected columns were masked (not the rows) in the changed ones — about 42% of rows — keeping the other 45 features.
+- Walk-forward selection t-statistic: **3.24 (leaky) → 1.44 (honest)**. Every later experiment used the masked dataset.
 
-- **Order-blind label, offline AUC: 0.6544**
-- **Order-aware label (same underlying signal, re-labeled by walking the path forward and resolving whichever level is crossed first): AUC 0.5707**
+## 2. A price feature's 52-week window included future prices
 
-The order-blind number looked like the better model. It wasn't — it was measuring a different, easier, and unrealistic question. See [`src/order_aware_labeling.py`](src/order_aware_labeling.py).
+*Found and fixed during development, before the current model was built — it does not affect the current model, whose training data was rebuilt after the fix (the affected column is empty in it, and the remaining 52-week-high columns have single-factor IC of 0.025 or less in absolute value).*
 
-## 2. A signal was used before it was actually available
+A "position relative to the 52-week high" feature was computed with no upper bound on the window, so it mixed in prices from after the date being scored.
 
-*(experimental intraday signal, not the main strategy)*
+- Evidence: one derived column had a single-factor IC of **-0.2378**; the other 53 features were all at 0.041 or below in absolute value. The sign fit the mechanism — stocks that go on to rise have higher future highs, so they look "low" today.
+- The first patch fixed two of three derived columns and skipped the third on the reasoning that its history looked fine; it was caught later by checking that the stored data could be reproduced from the current code, then measuring it. After recomputing: IC **-0.2378 → -0.0033**.
+- Backtest at that point: CAGR **29.76% → 13.34%**, below the 15.37% KOSPI200 CAGR for the same period; mean walk-forward IC **+0.0881 → +0.0236** (t = 1.31, not significant). The earlier conclusion that the strategy was robust had to be withdrawn, and the signal was later rebuilt on clean data.
 
-A secondary signal, dated by its "as of" date, was in fact computed from a window that already included that date's own closing information. Using it to make a decision *on* that date was look-ahead — the same mistake as trading on a piece of news before it's been published.
+## 3. The headline number was inflated by applying full-period parameters retroactively
 
-- Correlation between the signal (as dated) and **that same date's** return: ≈ 0.25
-- Correlation between the signal and the **next** date's return — i.e., its actual predictive value once you could realistically have acted on it: ≈ 0.00
-- After lagging the signal by one period before using it: a walk-forward validation Spearman IC that had read **≈ +0.09 to +0.10** (two separate runs of the leaky version gave +0.099 and +0.093) came down to a more honest **+0.039**.
+*Fixed; the headline in the README is the corrected number.*
 
-A >2x inflation in an IC estimate, from a bug that's invisible unless you specifically check what date range a "point-in-time" signal actually covers.
+The regime filter and re-entry cooldown had been selected by a grid search over the whole 2019–2026 window, then applied to every year — including years where an honest, year-by-year process would not have used them.
 
-## 3. Releasing capital too early in a concurrent-position simulation
+- Re-run with each year's parameters chosen using only prior years' data: **32.48% CAGR / 1.17 → 31.36% / 1.13**. The gap is small, but the honest number is the one reported.
+- Related: the per-year table once compounded to 8.32× against an 8.65× headline, because each year was measured first-trading-day to last-trading-day and the boundary day between years was dropped from both. It was caught by someone else checking the arithmetic, not by any special diligence here.
 
-*(experimental intraday signal, not the main strategy)*
+## 4. A t-statistic of 3.11 that was really 1.06
 
-A portfolio backtest released cash from a closed position and made it available for the next trade immediately, even on days when multiple positions were still simultaneously open and that capital was, in reality, still committed.
+*Found in a rejected experiment; that label was dropped and never became part of the current model.*
 
-- Naive (capital released instantly): **CAGR 100.45%, efficiency (CAGR / |MDD|) 4.82**
-- Correct (capital tracked per-position, released only at actual exit time, new trades skipped if insufficient *available* — not merely committed — cash): **CAGR 33.92%, efficiency 5.85**
+A label built from a 60-day rolling average was scored on weekly snapshots, so adjacent snapshots shared about 92% of their observation window and the yearly samples weren't independent. It wasn't feature leakage, but the t-test's independence assumption was broken.
 
-The "wrong" version wasn't just optimistic on CAGR — it was optimistic on CAGR *and* still ended up with worse risk-adjusted efficiency, which is the version of this bug that's easiest to miss because both headline numbers look plausible on their own.
-
-## 4. No transaction costs modeled at all, on an otherwise-complete pipeline
-
-*(experimental intraday signal, not the main strategy)*
-
-An entire experimental pipeline — feature engineering, labeling, model training, backtest simulation — had zero commission, tax, or slippage modeling anywhere in it, unlike the project's main system (see [`src/transaction_costs.py`](src/transaction_costs.py)).
-
-- Best configuration, fee-free (gross): profitable.
-- Same configuration, realistic ~0.41% round-trip cost applied: **net CAGR in the -50% to -70% range**, across every variant tried.
-
-Nothing else in the pipeline was wrong — the model, the labels, the walk-forward split were all fine. The absence of a single cost model was enough to flip the entire conclusion.
-
-## 5. (Meta) This README's own yearly-returns table didn't match its own headline number
-
-*(about this repo's own numbers — i.e. the main strategy's results table above, not the experimental signal in items 1–4)*
-
-While writing this repo, the year-by-year table below the [results summary](README.md) was computed as "first trading day of year → last trading day of year." Compounding those numbers gave a different total than the headline cumulative return computed directly from the full equity curve:
-
-- Product of the (wrong) per-year figures: **8.32×**
-- Actual total, computed directly: **8.65×**
-
-The bug: each year's figure was computed independently, so the single trading day between "last day of year N" and "first day of year N+1" was silently dropped from *both* years' reported returns, at every year boundary. The fix is to compute annual returns from consecutive year-*end* marks (previous year-end → this year-end), anchoring only the very first year to the actual starting capital — see the corrected computation reflected in the table in [README.md](README.md).
-
-Kept in here on purpose: it's a mistake made in the course of writing the "we're careful about backtest arithmetic" repo, caught by having someone else's eyes independently check the numbers rather than by any special diligence on the author's part. That's the actual lesson.
+- Non-overlapping re-test: overall IC t **3.11 → 1.06**; the t for the top-ranked names' IC **2.05 → 1.16**. The real backtest matched the deflated numbers (about zero excess over the universe), so the idea was dropped.
+- The correction itself had a flaw: the "non-overlapping" figure used about 32 dates as its sample while the weekly figure used 8 yearly means, and a larger n raises t by itself. Re-done on the same basis, the earlier reported figures were 20–30% too high.
