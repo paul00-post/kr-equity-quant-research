@@ -140,8 +140,29 @@ flowchart TD
 ```
 
 - **Agent B** — an XGBoost *ranking* model (`rank:ndcg`) trained on fundamentals, ranking a self-computed large-cap universe (a market-cap approximation, not the official index) to produce a daily candidate pool (with a per-sector cap, so the pool can't collapse into one hot sector).
-- **Agent Cx** — a technical/price-action signal blending an XGBoost *classifier* (`binary:logistic`) with a CNN-LSTM variant, scoring stocks within the **actual, point-in-time official KOSPI200 membership**. (A classifier here, not a ranker like Agent B — the two agents were developed at different points in the project rather than to a shared design spec.)
+- **Agent Cx** — a technical/price-action signal blending an XGBoost *classifier* (`binary:logistic`) with a CNN-LSTM variant, scoring stocks that are **actual, point-in-time official KOSPI200 members** within its modeled ticker list (see [Universe](#universe-and-how-many-stocks-that-actually-is) below). (A classifier here, not a ranker like Agent B — the two agents were developed at different points in the project rather than to a shared design spec.)
 - A stock only becomes a candidate when it clears **both** filters on the same day — i.e. when *both* a market-cap-based approximation and the official index agree it belongs in the large-cap set. This is a deliberate design choice, not an oversight: the two universes disagree on roughly 15–20% of names at any given time, and requiring agreement between two independently-derived definitions turned out to filter better than either one alone (tested directly, not assumed). The tradable universe is therefore this intersection, not "KOSPI200" in the strict sense.
+
+### Universe, and how many stocks that actually is
+
+Each model has its own universe, and only names that appear in **both** on the same day can be traded: Agent B's market-cap-approximated large-cap list, and Agent Cx's official point-in-time KOSPI200 members.
+
+**Financials are excluded.** The modeled ticker list (282 tickers) is built from stocks that have a sector mapping, and banks (10), securities firms (10) and 42 of the 48 other stocks KRX tags as "financial services" don't have one — so none of them are scored or traded. The six stocks still tagged "financial" are holding companies (five mapped as conglomerates, one construction company). The same rule also drops 14 tickers in a few small sectors (textiles, precision instruments, paper, non-metallic minerals) — a side effect of the mapping, not a separate decision.
+
+Stocks per fold (tickers appearing at any point in that year):
+
+| Year (fold) | Agent B | Agent Cx | In both | Avg. tradable per day |
+|---|---|---|---|---|
+| 2019 | 161 | 148 | 128 | 115 |
+| 2020 | 167 | 162 | 142 | 115 |
+| 2021 | 172 | 166 | 147 | 121 |
+| 2022 | 163 | 159 | 139 | 121 |
+| 2023 | 173 | 161 | 143 | 124 |
+| 2024 | 168 | 165 | 148 | 126 |
+| 2025 | 167 | 171 | 148 | 122 |
+| 2026 (through Sep 4) | 153 | 162 | 135 | 114 |
+
+So the tradable pool is roughly 115–125 names on a given day (128–148 over a full year as membership rotates), out of about 200 index members. Agent B then narrows that to a small daily shortlist, and the Agent Cx gate keeps only its highest-scoring names, so the number of stocks actually bought on any day is far smaller (exact sizes are among the parameters withheld).
 
 Entries, stop-losses (volatility-based), and profit targets follow a fixed rule set; position risk is managed with per-sector caps and a drawdown-triggered regime filter that blocks new entries during KOSPI-wide selloffs. The exact numeric thresholds for all of this are withheld — the *structure* is what's documented here.
 
@@ -187,7 +208,8 @@ Requires Python 3.10+. Each `src/` file is self-contained and runs standalone (n
 
 ## Limitations
 
-- The numbers above are backtest results, not a live track record — live performance (running since 2026-09-21) doesn't have enough history yet to report on its own, and should be expected to be more modest than the backtest above. One specific reason: the regime filter and re-entry cooldown are, at bottom, a bet that a future selloff will look enough like 2026's actual crash for the same trigger (a 20-day, -15% KOSPI drawdown) to catch it — and with only 8 years of history, that bet is validated as well as this project can validate it, not proven. The walk-forward selection process is genuinely honest (each year uses only prior data), and a much larger candidate search reaches a similar CAGR without it (see [Methodology](#methodology--what-makes-this-credible-or-not)) — but "honest selection" and "will definitely work on the next crash, which won't look identical to the last one" are different claims, and only the first one is backed by anything here.
+- The numbers above are backtest results, not a live track record — live performance (running since 2026-09-21) doesn't have enough history yet to report on its own, and should be expected to be more modest than the backtest above. One specific reason: the regime filter and re-entry cooldown are, at bottom, a bet that a future selloff will look enough like 2026's actual crash for the same trigger (a fixed-window KOSPI drawdown threshold) to catch it — and with only 8 years of history, that bet is validated as well as this project can validate it, not proven. The walk-forward selection process is genuinely honest (each year uses only prior data), and a much larger candidate search reaches a similar CAGR without it (see [Methodology](#methodology--what-makes-this-credible-or-not)) — but "honest selection" and "will definitely work on the next crash, which won't look identical to the last one" are different claims, and only the first one is backed by anything here.
+- **Stocks that stopped trading mid-backtest aren't in the modeled ticker list, so they could never be bought.** Checked how much this matters, three ways. (1) Scale: 10 KOSPI200 members over 2019–2026 stopped trading — 73 of 3,201 member-half-years, 2.3%. (2) Cause: a separate earlier check of the 21 index members missing from the price data found 20 were mergers or restructurings and only one was a true delisting (2016, before the backtest window); none of the 10 in the window showed a price collapse before its last day (final 60 trading days: -17% to +21%). (3) Effect: members left out of the modeled list (these names plus ~70 still-listed ones) returned 9.13% CAGR as an equal-weight group versus 9.45% for those included — practically the same, though individual years differed by as much as -16pp to +9pp. Together that says survivorship is probably small here, but it isn't measured on the strategy's own trades, since these names can't be simulated. Separately, the scored universe covers only about 72–79% of KOSPI200 members at any time — a selection of large caps, not the full index. A live system also has to handle a held stock being halted or delisted, which the backtest never had to.
 - Universe and cost assumptions are Korea-specific (a KOSPI200-adjacent large-cap universe, Korean transaction tax); nothing here is a claim that the approach generalizes to other markets as-is.
 
 ## Tech stack
