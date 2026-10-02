@@ -15,6 +15,8 @@ This repo is a write-up of the methodology and validation discipline behind a lo
 | CAGR / \|MDD\| | **1.13** | 0.55 |
 | Cumulative | **8.11×** | 4.68× |
 
+\* The 31.36% headline is a single-seed result. A multi-seed variant, the daily sleeve, is described below.
+
 **This is the walk-forward-validated number, not a full-period grid search.** The risk-management parameters (regime filter, re-entry cooldown, gate threshold, position sizing) were selected honestly — for each year, using only data from years strictly before it — and re-derived the same values from 2022 onward without ever seeing that year's own data. A separate, single full-period grid search (which *does* see the whole 2019–2026 window at once) lands on the same 2022–2026 parameters but reports a higher, look-ahead-inflated 32.48% CAGR / 1.17 — see [Methodology](#methodology--what-makes-this-credible-or-not) for both numbers and why the gap between them is informative.
 
 > **These numbers can't be independently verified from this repo.** The code here ([`src/`](src/)) illustrates the techniques used, not the full pipeline — the actual backtest depends on licensed/collected Korean market data that isn't (and can't be) included. Read this table as "what came out of a walk-forward, cost-aware backtest for this approach," not as something you can reproduce or take on faith. The methodology sections below are the part you actually *can* evaluate.
@@ -43,6 +45,50 @@ Each year below is an out-of-sample fold: for the model that year is tested on, 
 2019–2021 use a different, lighter configuration than 2022 onward (higher gate percentile, smaller position size, no cooldown/regime filter) — that's not an inconsistency, it's the point: a walk-forward selection process re-run at the start of each year, using only data from before it, judged the regime filter and cooldown *not worth it* for 2019–2021 and only adopted them starting 2022, without ever looking ahead at that year's own results. See [Methodology](#methodology--what-makes-this-credible-or-not) for the full schedule and how it was derived. (Compounding these year-by-year figures gets to 8.10×, a cent short of the 8.11× headline above — pure rounding noise from displaying each year to one decimal place, not a bug; each year's return is computed year-end to year-end, not first-trading-day to last-trading-day, so no boundary days are silently dropped.)
 
 Three years (2019, 2020, 2026) underperform buy-and-hold outright, and 2026 underperforms by a wide margin — a strong KOSPI rally this strategy's regime/sector-cap risk controls didn't fully capture. Against the equal-weight universe the picture is better: the strategy wins 6 of 8 years, and the two it loses (2020: -1.7pp, 2024: -1.4pp) are both narrow — including 2026, where the strategy beats the average stock in its universe by +11.9pp even while lagging the cap-weighted index (the index's +73.8% versus only +18.6% for the average stock suggests the rally was narrow, though that's an inference from these two numbers, not something separately tested). Included deliberately rather than cut off at a more flattering point.
+
+### Seed-averaged variant (daily sleeve)
+
+A second variant that does not depend on a single random seed, and trades every trading day:
+
+- **Ranker (Agent B side):** an ensemble of XGBoost rankers trained with different seeds, with their daily scores rank-averaged. It is trained on a different label than the weekly sleeve's ranker. Scores are produced every trading day.
+- **Gate (Agent Cx side):** the CNN-LSTM component only, with probabilities averaged over several seeds.
+- Same structure of entry and exit rules as above. Signals are computed after each day's close and orders go in at the next trading day's open.
+
+**Training is walk-forward.** Both the rankers and the gate are retrained every year on an expanding window: each year's scores come from models trained only on earlier years.
+
+**Trading rules.** With the rules fixed across all years (chosen from the full-period results), the variant returns **24.4% CAGR (range 20.5–26.8% across four seed combinations), −24.8% MDD**. The four combinations are two independent ranker ensembles × two CNN-LSTM seed groups (the seeds used while tuning, and a group never used for tuning). When the rules themselves are also selected by walk-forward each year from a fixed candidate set, scored on prior-year results only, the four-combination mean is **22.1% (scored on excess return over the universe) or 23.9% (scored on return/drawdown efficiency); we report the average, about 23%**.
+
+| Year | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 YTD |
+|---|---|---|---|---|---|---|---|---|
+| Daily sleeve, rules selected by walk-forward (mean of the two criteria) | −4.4% | 16.5% | 13.2% | 28.7% | 79.4% | 11.8% | 34.3% | 14.9% |
+| Daily sleeve, rules fixed | −7.0% | 20.8% | 3.2% | 42.4% | 91.1% | 4.4% | 42.5% | 15.0% |
+| KOSPI200 | 15.8% | 35.6% | 3.0% | −24.2% | 24.9% | −9.4% | 94.2% | 73.8% |
+
+2019–2020 use a fixed starting rule set (no earlier years to select from). The variant beats KOSPI200 in four of eight years (2021–2024) and lags in strong up-markets (2019, 2020, 2025, 2026).
+
+### Adding the daily sleeve on 2026-10-05
+
+The system has been live with the weekly sleeve since 2026-09-21. On **2026-10-05 the daily sleeve will be added**, and the capital will be split 50/50 between the two sleeves, tracked as two ledgers inside one brokerage account.
+
+- **Weekly sleeve:** scores are computed on **Friday's close and orders are placed only at Monday's open** (93% of entries). Single-seed ranker.
+- **Daily sleeve:** the seed-averaged variant above. It is scored and traded every trading day: signals are computed after each day's close and orders go in at the next trading day's open.
+
+Rebalancing: once a year, on the first trading day, cash is moved between the ledgers back to 50/50, limited to the donor ledger's free cash (no positions are force-sold; any shortfall is retried monthly).
+
+The two sleeves were backtested together in a single engine (each starting with half the capital, fractional shares, 0.41% round-trip costs):
+
+| | CAGR | MDD |
+|---|---|---|
+| Split, daily-sleeve rules fixed | 29.2% (four-combination range 27.1–30.5%) | −25.1% |
+| Split, daily-sleeve rules selected by walk-forward (mean of the two criteria) | **28.5%** (27.2–32.1%) | **−25.0%** |
+| Same, with idle-cash parking | 29.0% | −24.7% |
+
+| Year | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 YTD |
+|---|---|---|---|---|---|---|---|---|
+| Split (daily-sleeve rules by walk-forward) | 0.8% | 21.2% | 17.2% | 31.8% | 53.5% | 3.0% | 84.8% | 25.0% |
+| KOSPI200 | 15.8% | 35.6% | 3.0% | −24.2% | 24.9% | −9.4% | 94.2% | 73.8% |
+
+These are backtest results; the split has not been traded yet, and the daily sleeve has no live record.
 
 ### Additional diagnostics
 
@@ -82,6 +128,8 @@ Given the ~46% average cash allocation above, an obvious question: can that idle
 
 Commission-only cost (this ETF is exempt from Korea's securities transaction tax, unlike regular stocks); modeled at the level of individual cash-in/cash-out events rather than net daily cash change, since 101 of the days in this window had two or more offsetting cash events that a naive daily-net approach would have under-charged for. Event-level accounting added about 25% more modeled commission (₩756,964 → ₩948,516 over the window) and the result barely moved (+1.03pp → +0.98pp CAGR), so the naive version wasn't hiding much.
 
+**Update for the split configuration.** The strategy averages about 45% idle cash, and the plan is the same ETF route as above (it trades through the same stock-order flow, with no transfer step). In the joint backtest of the split configuration, parking in the CD-rate ETF (459580, listed June 2023, about 3.2% annualised, charging 0.015% on every buy/sell event) adds about **+1.5 percentage points of CAGR since its listing** (42.2% → 43.7%) and about +0.5 points over the full 2019–2026 window, because the ETF did not exist earlier. The "without parking" split figures are therefore conservative, and the gain stays positive when costs are doubled. At a small account size one ETF unit (about 1.07 million KRW) is coarse, so the parked amount can only move in steps of that size.
+
 ### Statistical robustness checks
 
 Two Monte Carlo-style checks, run to address a more basic question than anything above: is any of this distinguishable from noise?
@@ -117,16 +165,18 @@ One honest caveat: both permutation runs isolate signal quality specifically —
 
 Two independent signal sources, combined by intersection rather than by blending scores into one number:
 
+**Weekly sleeve (live)**
+
 ```mermaid
 flowchart TD
-    subgraph AgentB["Agent B — fundamentals"]
-        B1["Market-cap-approximated<br/>large-cap universe"] --> B2["XGBoost ranker<br/>(rank:ndcg)"]
-        B2 --> B3["Daily candidate pool<br/>(per-sector cap applied)"]
+    subgraph AgentB["Agent B — fundamentals (weekly)"]
+        B1["Market-cap-approximated<br/>large-cap universe"] --> B2["XGBoost ranker<br/>(single seed)"]
+        B2 --> B3["Candidate pool<br/>refreshed at Friday close<br/>(per-sector cap applied)"]
     end
 
     subgraph AgentCx["Agent Cx — price action / ML"]
         C1["Official KOSPI200<br/>point-in-time membership"] --> C2["XGBoost classifier<br/>(binary:logistic)"]
-        C1 --> C3["CNN-LSTM model"]
+        C1 --> C3["CNN-LSTM model<br/>(single model)"]
         C2 --> C4["Blended cross-sectional<br/>percentile score"]
         C3 --> C4
     end
@@ -134,12 +184,47 @@ flowchart TD
     B3 --> GATE{"Passes both<br/>on the same day?"}
     C4 --> GATE
     GATE -->|no| SKIP["Not traded"]
-    GATE -->|yes| ENTRY["Entry rules<br/>gap filter · volatility-based stop · profit target"]
-    ENTRY --> RISK["Risk gates<br/>per-sector cap · drawdown regime filter · re-entry cooldown"]
+    GATE -->|yes| ENTRY["Order at the next trading day's open<br/>(in practice Monday)"]
+    ENTRY --> RISK["Risk gates<br/>gap filter · volatility-based stop · per-sector cap<br/>drawdown regime filter · re-entry cooldown"]
     RISK --> POS["Position<br/>(timer / stop / target exit)"]
 ```
 
-- **Agent B** — an XGBoost *ranking* model (`rank:ndcg`) trained on fundamentals, ranking a self-computed large-cap universe (a market-cap approximation, not the official index) to produce a daily candidate pool (with a per-sector cap, so the pool can't collapse into one hot sector).
+**Daily sleeve (added 2026-10-05)**
+
+```mermaid
+flowchart TD
+    subgraph AgentB2["Agent B — fundamentals (daily)"]
+        D1["Market-cap-approximated<br/>large-cap universe"] --> D2["Ensemble of XGBoost rankers<br/>(different seeds, rank-averaged)"]
+        D2 --> D3["Candidate pool<br/>refreshed every trading day<br/>(per-sector cap applied)"]
+    end
+
+    subgraph AgentCx2["Agent Cx — price action / ML"]
+        E1["Official KOSPI200<br/>point-in-time membership"] --> E2["CNN-LSTM models<br/>(different seeds, probabilities averaged)"]
+        E2 --> E3["Cross-sectional<br/>percentile score"]
+    end
+
+    D3 --> GATE2{"Passes both<br/>on the same day?"}
+    E3 --> GATE2
+    GATE2 -->|no| SKIP2["Not traded"]
+    GATE2 -->|yes| ENTRY2["Order at the next trading day's open<br/>(any weekday)"]
+    ENTRY2 --> RISK2["Risk gates<br/>gap filter · volatility-based stop · per-sector cap<br/>re-entry cooldown"]
+    RISK2 --> POS2["Position<br/>(timer / stop exit)"]
+```
+
+**How the two sleeves share the account**
+
+```mermaid
+flowchart LR
+    CAP["Capital<br/>two ledgers in one brokerage account<br/>split 50 / 50"] --> W["Weekly sleeve"]
+    CAP --> D["Daily sleeve"]
+    W --> REB["Once a year: rebalance the ledgers back to 50 / 50<br/>(limited to the donor ledger's free cash)"]
+    D --> REB
+    W --> CASH["Idle cash"]
+    D --> CASH
+    CASH --> PARK["Parked in a money-market-rate ETF"]
+```
+
+- **Agent B** — an XGBoost *ranking* model (`rank:ndcg`) trained on fundamentals, ranking a self-computed large-cap universe (a market-cap approximation, not the official index) to produce a candidate pool (with a per-sector cap, so the pool can't collapse into one hot sector). In the weekly sleeve the pool is refreshed once a week, at Friday's close; in the daily sleeve it is refreshed every trading day.
 - **Agent Cx** — a technical/price-action signal blending an XGBoost *classifier* (`binary:logistic`) with a CNN-LSTM variant, scoring stocks that are **actual, point-in-time official KOSPI200 members** within its modeled ticker list (see [Universe](#universe-and-how-many-stocks-that-actually-is) below). (A classifier here, not a ranker like Agent B — the two agents were developed at different points in the project rather than to a shared design spec.)
 - A stock only becomes a candidate when it clears **both** filters on the same day — i.e. when *both* a market-cap-based approximation and the official index agree it belongs in the large-cap set. This is a deliberate design choice, not an oversight: the two universes disagree on roughly 15–20% of names at any given time, and requiring agreement between two independently-derived definitions turned out to filter better than either one alone (tested directly, not assumed). The tradable universe is therefore this intersection, not "KOSPI200" in the strict sense.
 
@@ -171,7 +256,7 @@ Entries, stop-losses (volatility-based), and profit targets follow a fixed rule 
 - **Point-in-time universe.** KOSPI200 rebalances semi-annually with a real effective date (the trading day after the index provider's announcement, not the 1st of the month) — this matters for the Agent Cx side of the filter above. A backtest using "current members" applied retroactively is a look-ahead bug — see [`src/point_in_time_universe.py`](src/point_in_time_universe.py).
 - **Order-aware labeling.** Any label built from "did price reach the target within N bars," checked without regard to whether the stop-loss was hit *first*, silently inflates label quality. See [`src/order_aware_labeling.py`](src/order_aware_labeling.py) for the concrete before/after.
 - **Transaction costs modeled from day one on every new idea.** Commission on both legs, tax on the sell leg, slippage — see [`src/transaction_costs.py`](src/transaction_costs.py).
-- **Annual walk-forward folds with an embargo**, not k-fold cross-validation — see [`src/walkforward_validation.py`](src/walkforward_validation.py). Each fold trains only on strictly-past data.
+- **Annual walk-forward folds, with a label embargo on the ranker.** The Agent B ranker (and its feature selection) is trained only on rows dated before a buffer that is longer than its label horizon ahead of the test year, so no training label looks into the test year. The Agent Cx models (the XGBoost classifier and the CNN-LSTM) are trained on data up to the end of the prior year without such a buffer; their labels look a short holding period ahead, so the last couple of weeks of training labels overlap the first days of the test year. That is a small share of the training rows. Two checks looked for an effect. Entries made in the first 11 trading days of each test year, the only window the overlap can touch, show no advantage over other entries once the market return over each holding period is subtracted. And retraining the CNN-LSTM gate with an 11-trading-day embargo changed the ten-seed-average result by −3.8pp (single-seed results moved by +4.9pp on average); the gap came from full-year returns rather than the early-year window, which points to retraining noise. See [`src/walkforward_validation.py`](src/walkforward_validation.py) for the embargo mechanism.
 - **Risk-management parameters (regime filter, re-entry cooldown, gate threshold, position size) walk-forward-validated, not just grid-searched once.** Re-selected each year using only data from years strictly before it — genuinely honest at the selection step, unlike a one-time grid search over the whole period. Result: 2019–2021 get a lighter configuration (wider gate, smaller position, no cooldown/regime filter); 2022 onward converges on the same setup a full-period grid search finds independently, without that search ever seeing 2022–2026 data. The two approaches' backtests differ by only 1.12 percentage points of CAGR (31.36% walk-forward vs. 32.48% full-period, both net of costs) — evidence the setup isn't tightly fit to one stretch of history, not proof it's optimal. Disclosed rather than hidden: re-running the same walk-forward process with a much larger candidate grid (180 vs. 10 parameter combinations) reaches a similar CAGR (31.34%) but never selects the regime filter at all, and MDD is worse as a result (-30.4% vs. -27.7%) — a textbook multiple-comparisons effect (more candidates competing for the same handful of years of data makes the honest selection noisier, not more thorough). Both results are reported here rather than picking whichever looks better.
 - **Relative, not absolute, entry thresholds.** Every time a fixed score cutoff was replaced with a same-day cross-sectional percentile cutoff, results improved and a look-ahead disappeared at the same time (the fixed cutoff had implicitly been tuned by looking at the whole evaluation period's score distribution).
 - **Didn't assume the two blended Agent Cx sub-models need identical labels, and checked rather than argued.** They turned out to be trained on slightly different label definitions (a one-day offset in the assumed entry price) — not by original design, found partway through. Requiring every blended model to share one label isn't obviously the correct default in the first place: base models trained on different-but-related targets tend to make less-correlated mistakes, which is a good part of *why* blending helps at all. That's a reason this wasn't treated as an emergency, not a reason to skip checking — retrained one side to close the gap and compared both against the strategy's actual daily candidate pool, and found no statistically meaningful difference in selection quality (p≈0.46, small sample of days). Left as found rather than "fixed" on the strength of one modest test.
@@ -211,6 +296,9 @@ Requires Python 3.10+. Each `src/` file is self-contained and runs standalone (n
 - The numbers above are backtest results, not a live track record — live performance (running since 2026-09-21) doesn't have enough history yet to report on its own, and should be expected to be more modest than the backtest above. One specific reason: the regime filter and re-entry cooldown are, at bottom, a bet that a future selloff will look enough like 2026's actual crash for the same trigger (a fixed-window KOSPI drawdown threshold) to catch it — and with only 8 years of history, that bet is validated as well as this project can validate it, not proven. The walk-forward selection process is genuinely honest (each year uses only prior data), and a much larger candidate search reaches a similar CAGR without it (see [Methodology](#methodology--what-makes-this-credible-or-not)) — but "honest selection" and "will definitely work on the next crash, which won't look identical to the last one" are different claims, and only the first one is backed by anything here.
 - **Stocks that stopped trading mid-backtest aren't in the modeled ticker list, so they could never be bought.** Checked how much this matters, three ways. (1) Scale: 10 KOSPI200 members over 2019–2026 stopped trading — 73 of 3,201 member-half-years, 2.3%. (2) Cause: a separate earlier check of the 21 index members missing from the price data found 20 were mergers or restructurings and only one was a true delisting (2016, before the backtest window); none of the 10 in the window showed a price collapse before its last day (final 60 trading days: -17% to +21%). (3) Effect: members left out of the modeled list (these names plus ~70 still-listed ones) returned 9.13% CAGR as an equal-weight group versus 9.45% for those included — practically the same, though individual years differed by as much as -16pp to +9pp. Together that says survivorship is probably small here, but it isn't measured on the strategy's own trades, since these names can't be simulated. Separately, the scored universe covers only about 72–79% of KOSPI200 members at any time — a selection of large caps, not the full index. A live system also has to handle a held stock being halted or delisted, which the backtest never had to.
 - Universe and cost assumptions are Korea-specific (a KOSPI200-adjacent large-cap universe, Korean transaction tax); nothing here is a claim that the approach generalizes to other markets as-is.
+- Returns are concentrated: a few tickers account for about 72% of positive P&L, and 2022, 2023 and 2025 drive most of the gains. The strategy lags in strong up-markets.
+- The trading rules were tuned on the same period. The walk-forward rule selection for the daily sleeve uses a candidate set and scoring criteria that were fixed after inspecting full-period results.
+- In the joint backtest of the two sleeves, the annual rebalance could only partly complete in 2020, 2024 and 2026 because the donor sleeve had no free cash. Sector and per-ticker limits are applied per sleeve only (the two sleeves held the same ticker on 23% of days). Fills at the open may also differ from the assumed price by a tick or more.
 
 ## Tech stack
 
