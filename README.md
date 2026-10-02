@@ -145,7 +145,7 @@ Commission-only cost (this ETF is exempt from Korea's securities transaction tax
 | Check | Weekly sleeve | Daily sleeve | 50/50 split |
 |---|---|---|---|
 | Random-signal test (CAGR beats N of 1,000 random runs) | 1,000 (best random run 25.6%) | 998 (best random run 31.8%; p ≈ 0.003) | not run as a whole; the two sleeves are tested separately |
-| Realized MDD vs. 5,000 reshuffled orderings (percentile; lower = unluckier path) | 12th | not run | 18th (individual runs 7th–38th) |
+| Realized MDD vs. 5,000 reshuffled orderings (percentile; lower = unluckier path) | 12th | 93rd (individual runs 58th–99th) | 18th (individual runs 7th–38th) |
 | CAGR with 2× slippage (change) | 28.5% (−2.8pp) | 20.3% (−2.7pp) | 25.7% (−2.8pp) |
 | Years beating the equal-weight universe | 6 of 8 | 4 of 8 | 7 of 8 |
 | Years beating KOSPI200 | 5 of 8 | 4 of 8 | 4 of 8 |
@@ -156,7 +156,7 @@ Two Monte Carlo-style checks, run to address a more basic question than anything
 
 *(Both checks below are re-run against the walk-forward-validated schedule above — 449 trades, 31.36% CAGR.)*
 
-The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAGR). The matching results for the 50/50 split (order reshuffling) and the daily sleeve (random-signal test) follow each of them. The random-signal test was not run on the split as a whole; its two sleeves are tested separately.
+The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAGR). The matching results for the 50/50 split and the daily sleeve follow each of them. The random-signal test was not run on the split as a whole; its two sleeves are tested separately.
 
 **1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, 1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
 
@@ -170,6 +170,8 @@ The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAG
 The realized drawdown path was on the unlucky side — most reorderings of the exact same trades would have produced a smaller drawdown. Read this as "the CAGR isn't sequencing-dependent, but the specific -27.7% MDD partly is."
 
 **50/50 split.** Same reshuffling on the split (the mean of the eight backtest runs, 1,886 daily returns, 5,000 orderings): the realized MDD of −24.1% sits at the 18th percentile of the reshuffled distribution (mean −20.35%, 5th/95th percentile −28.6% / −14.4%); across the eight individual runs the percentile averages 23 (range 7–38). As with the weekly sleeve, the realized path was somewhat on the unlucky side, though less so (weekly: 12th percentile).
+
+**Daily sleeve.** Same reshuffling on the daily sleeve alone (the mean of the eight backtest runs): the realized MDD of −21.3% sits at the 93rd percentile (reshuffled mean −29.3%, 5th/95th percentile −40.6% / −20.6%); the eight individual runs range from the 58th to the 99th percentile (mean 87). Unlike the weekly sleeve and the split, the daily sleeve's realized path was on the lucky side, so a different ordering of the same trades would more often have produced a deeper drawdown than the one reported.
 
 **2. Signal permutation test — is Agent Cx's stock selection distinguishable from random?** Agent B's pool and every risk/position-sizing rule were left untouched; only Agent Cx's score was replaced with random noise (same per-day pass rate as the real percentile gate, so trade frequency is comparable — only *which* names pass is randomized). Reran the full backtest 1,000 times:
 
