@@ -157,7 +157,7 @@ Commission-only cost (this ETF is exempt from Korea's securities transaction tax
 
 | Check | Weekly sleeve | Daily sleeve | 50/50 split |
 |---|---|---|---|
-| Random-signal test (CAGR beats N of 1,000 random runs) | 1,000 (best random run 25.6%) | 998 (best random run 31.8%; p ≈ 0.003) | not run as a whole; the two sleeves are tested separately |
+| Random-signal test (CAGR beats N of 1,000 random runs) | 1,000 (best random run 25.6%) | 998 (best random run 31.8%; p ≈ 0.003) | 1,000 (best random run 21.5%; p < 0.001) |
 | Realized MDD vs. 5,000 reshuffled orderings (percentile; lower = unluckier path) | 12th | 93rd (individual runs 58th–99th) | 18th (individual runs 7th–38th) |
 | CAGR with 2× slippage (change) | 28.5% (−2.8pp) | 20.3% (−2.7pp) | 25.7% (−2.8pp) |
 | Years beating the equal-weight universe | 6 of 8 | 4 of 8 | 7 of 8 |
@@ -169,7 +169,7 @@ Two Monte Carlo-style checks, run to address a more basic question than anything
 
 *(Both checks below are re-run against the walk-forward-validated schedule above — 449 trades, 31.36% CAGR.)*
 
-The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAGR). The matching results for the 50/50 split and the daily sleeve follow each of them. The random-signal test was not run on the split as a whole; its two sleeves are tested separately.
+The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAGR). The matching results for the 50/50 split and the daily sleeve follow each of them.
 
 **1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, 1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
 
@@ -189,21 +189,25 @@ The realized drawdown path was on the unlucky side — most reorderings of the e
 
 **2. Signal permutation test — is Agent Cx's stock selection distinguishable from random?** Agent B's pool and every risk/position-sizing rule were left untouched; only Agent Cx's score was replaced with random noise (same per-day pass rate as the real percentile gate, so trade frequency is comparable — only *which* names pass is randomized). Reran the full backtest 1,000 times:
 
-| | Weekly sleeve | Daily sleeve† |
-|---|---|---|
-| Random-signal CAGR — mean / median | 8.89% / 8.77% | 7.75% / 7.40% |
-| Random-signal CAGR — 95th percentile | 16.18% | 17.06% |
-| Random-signal CAGR — max of 1,000 runs | 25.55% | 31.79% |
-| Actual CAGR | 31.36% | 26.8% |
-| **Actual CAGR exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** | **998 / 1,000 (p ≈ 0.003)** |
-| Random-signal MDD — mean / median | -30.11% / -28.90% | -33.13% / -31.98% |
-| Actual MDD (random runs with a worse drawdown) | -27.7% (571 of 1,000) | -21.5% (992 of 1,000) |
+| | Weekly sleeve | Daily sleeve† | 50/50 split‡ |
+|---|---|---|---|
+| Random-signal CAGR — mean / median | 8.89% / 8.77% | 7.75% / 7.40% | 8.15% / 8.17% |
+| Random-signal CAGR — 95th percentile | 16.18% | 17.06% | 13.83% |
+| Random-signal CAGR — max of 1,000 runs | 25.55% | 31.79% | 21.45% |
+| Actual CAGR | 31.36% | 26.8% | 27.9% |
+| **Actual CAGR exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** | **998 / 1,000 (p ≈ 0.003)** | **1,000 / 1,000 (p < 0.001)** |
+| Random-signal MDD — mean / median | -30.11% / -28.90% | -33.13% / -31.98% | -26.39% / -25.39% |
+| Actual MDD (random runs with a worse drawdown) | -27.7% (571 of 1,000) | -21.5% (992 of 1,000) | -22.3% (764 of 1,000) |
 
 † The CNN-LSTM gate score was replaced with random noise at the same per-day pass rate; the ranker pool and every risk rule were left untouched. Ranker ensemble with the seed group that was not used for tuning, rules fixed.
+
+‡ Both signals were randomized at once (the weekly sleeve's blended gate score and the daily sleeve's CNN-LSTM gate score, each at its own per-day pass rate); everything else, including the annual rebalance, was left untouched. One representative configuration (ranker ensemble with the seed group not used for tuning, daily-sleeve rules selected by walk-forward on efficiency); its actual CAGR of 27.9% is close to the eight-run mean of 28.5%.
 
 The real signal's CAGR clears every one of 1,000 random permutations — not marginal. MDD is more informative here than in the earlier (fixed-parameter) version of this test: the actual -27.7% is better than both the random mean and median (571 of 1,000 random runs had a worse drawdown), suggesting drawdown control here comes from a mix of the risk-management structure (regime filter, sector caps, stop losses — which stays fixed either way) *and* some contribution from stock selection itself, not purely the former. The return, in any case, comes overwhelmingly from Agent Cx actually picking the right names.
 
 **Daily sleeve.** The real CAGR clears 998 of 1,000 random runs, slightly weaker than the weekly sleeve (which beat all 1,000) but still clear. The configuration shown is on the high side of the four fixed-rule configurations: for their average (24.4%), 3 of 1,000 random runs match or exceed it, and for the weakest (20.5%), 16 of 1,000.
+
+**50/50 split.** With both signals randomized, the split falls to 8.15% on average and no random run exceeds 21.5%, against 27.9% for the real signals: the real CAGR beats all 1,000 (p < 0.001). The real MDD of −22.3% is better than 764 of the 1,000 random runs.
 
 One honest caveat: both permutation runs isolate signal quality specifically — they don't speak to whether the risk-management parameter *selection* process itself is sound. That's a separate question, addressed by the walk-forward validation in [Methodology](#methodology--what-makes-this-credible-or-not) and the candidate-count sensitivity noted in [Limitations](#limitations).
 
