@@ -8,14 +8,14 @@ This repo is a write-up of the methodology and validation discipline behind a lo
 
 ## Results (reference only — see caveat)
 
-| | Strategy | KOSPI200 buy & hold |
-|---|---|---|
-| CAGR (2019–2026 YTD) | **31.36%** | 22.30% |
-| Max drawdown | **-27.7%** | -40.8% |
-| CAGR / \|MDD\| | **1.13** | 0.55 |
-| Cumulative | **8.11×** | 4.68× |
+| | Weekly sleeve (live) | Daily sleeve (planned) | 50/50 split (planned) | KOSPI200 buy & hold |
+|---|---|---|---|---|
+| CAGR (2019–2026 YTD) | **31.36%**\* | **23.0%** | **28.5%** | 22.30% |
+| Max drawdown | **-27.7%** | **-25.5%** | **-25.0%** | -40.8% |
+| CAGR / \|MDD\| | **1.13** | **0.90** | **1.14** | 0.55 |
+| Cumulative | **8.11×** | n/a | n/a | 4.68× |
 
-\* The 31.36% headline is a single-seed result. A multi-seed variant, the daily sleeve, is described below.
+\* Single-seed result. The daily sleeve and split figures are multi-seed backtests with the trading rules selected by walk-forward (mean of two scoring criteria); both are planned for 2026-10-05 and have no live record. They are described below.
 
 **This is the walk-forward-validated number, not a full-period grid search.** The risk-management parameters (regime filter, re-entry cooldown, gate threshold, position sizing) were selected honestly — for each year, using only data from years strictly before it — and re-derived the same values from 2022 onward without ever seeing that year's own data. A separate, single full-period grid search (which *does* see the whole 2019–2026 window at once) lands on the same 2022–2026 parameters but reports a higher, look-ahead-inflated 32.48% CAGR / 1.17 — see [Methodology](#methodology--what-makes-this-credible-or-not) for both numbers and why the gap between them is informative.
 
