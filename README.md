@@ -173,18 +173,19 @@ The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAG
 
 **1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, 1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
 
-| | Value |
-|---|---|
-| Actual MDD | -27.7% |
-| Reshuffled MDD — mean | -22.02% |
-| Reshuffled MDD — 5th/95th percentile | -30.64% / -15.63% |
-| Actual MDD's percentile in the reshuffled distribution | 12.1th |
+| | Weekly sleeve | Daily sleeve† | 50/50 split† |
+|---|---|---|---|
+| Actual MDD | -27.7% | -21.3% | -24.1% |
+| Reshuffled MDD — mean | -22.02% | -29.3% | -20.35% |
+| Reshuffled MDD — 5th/95th percentile | -30.64% / -15.63% | -40.6% / -20.6% | -28.6% / -14.4% |
+| Actual MDD's percentile in the reshuffled distribution | 12.1th | 93rd | 18th |
+| Same check on each of the eight individual runs (percentile) | n/a (one run) | 58th–99th (mean 87) | 7th–38th (mean 23) |
+
+† Mean path of the eight backtest runs (1,886 daily returns, 5,000 orderings); the individual runs were reshuffled 2,000 times each. The mean path has a shallower MDD than the average of the individual runs (daily −25.5%, split −25.0%) because their swings partly offset.
 
 The realized drawdown path was on the unlucky side — most reorderings of the exact same trades would have produced a smaller drawdown. Read this as "the CAGR isn't sequencing-dependent, but the specific -27.7% MDD partly is."
 
-**50/50 split.** Same reshuffling on the split (the mean of the eight backtest runs, 1,886 daily returns, 5,000 orderings): the realized MDD of −24.1% sits at the 18th percentile of the reshuffled distribution (mean −20.35%, 5th/95th percentile −28.6% / −14.4%); across the eight individual runs the percentile averages 23 (range 7–38). As with the weekly sleeve, the realized path was somewhat on the unlucky side, though less so (weekly: 12th percentile).
-
-**Daily sleeve.** Same reshuffling on the daily sleeve alone (the mean of the eight backtest runs): the realized MDD of −21.3% sits at the 93rd percentile (reshuffled mean −29.3%, 5th/95th percentile −40.6% / −20.6%); the eight individual runs range from the 58th to the 99th percentile (mean 87). Unlike the weekly sleeve and the split, the daily sleeve's realized path was on the lucky side, so a different ordering of the same trades would more often have produced a deeper drawdown than the one reported.
+**Reading the three columns.** The weekly sleeve and the split realized drawdown paths were on the unlucky side (12th and 18th percentile), so the same trades in another order would usually have produced a smaller drawdown. The daily sleeve is the opposite: its realized path was on the lucky side (93rd percentile; individual runs 58th–99th), so a different ordering would more often have produced a deeper drawdown than the one reported, about −29% on average.
 
 **2. Signal permutation test — is Agent Cx's stock selection distinguishable from random?** Agent B's pool and every risk/position-sizing rule were left untouched; only Agent Cx's score was replaced with random noise (same per-day pass rate as the real percentile gate, so trade frequency is comparable — only *which* names pass is randomized). Reran the full backtest 1,000 times:
 
