@@ -211,17 +211,7 @@ flowchart TD
     RISK2 --> POS2["Position<br/>(timer / stop exit)"]
 ```
 
-**How the two sleeves share the account**
-
-```mermaid
-flowchart LR
-    CAP["Capital<br/>two ledgers in one brokerage account<br/>split 50 / 50"] --> W["Weekly sleeve"]
-    CAP --> D["Daily sleeve"]
-    W <-.->|"once a year: rebalance to 50 / 50, donor free cash only"| D
-    W --> CASH["Idle cash"]
-    D --> CASH
-    CASH --> PARK["Parked in a money-market-rate ETF"]
-```
+The two sleeves split the capital 50/50 as two ledgers in one brokerage account, are rebalanced back to 50/50 once a year, and leftover cash is parked in a money-market-rate ETF.
 
 - **Agent B** — an XGBoost *ranking* model (`rank:ndcg`) trained on fundamentals, ranking a self-computed large-cap universe (a market-cap approximation, not the official index) to produce a candidate pool (with a per-sector cap, so the pool can't collapse into one hot sector). In the weekly sleeve the pool is refreshed once a week, at Friday's close; in the daily sleeve it is refreshed every trading day.
 - **Agent Cx** — a technical/price-action signal blending an XGBoost *classifier* (`binary:logistic`) with a CNN-LSTM variant, scoring stocks that are **actual, point-in-time official KOSPI200 members** within its modeled ticker list (see [Universe](#universe-and-how-many-stocks-that-actually-is) below). (A classifier here, not a ranker like Agent B — the two agents were developed at different points in the project rather than to a shared design spec.)
