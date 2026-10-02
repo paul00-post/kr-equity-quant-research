@@ -89,6 +89,10 @@ The two sleeves were backtested together in a single engine (each starting with 
 |---|---|---|---|---|---|---|---|---|
 | Split (daily-sleeve rules by walk-forward) | 0.8% | 21.2% | 17.2% | 31.8% | 53.5% | 3.0% | 84.8% | 25.0% |
 | KOSPI200 | 15.8% | 35.6% | 3.0% | −24.2% | 24.9% | −9.4% | 94.2% | 73.8% |
+| Universe (equal-weight) | −1.2% | 27.4% | 8.4% | −18.2% | 9.3% | −4.3% | 47.0% | 18.6% |
+| Split excess vs. universe | +2.0pp | −6.2pp | +8.8pp | +50.0pp | +44.2pp | +7.3pp | +37.8pp | +6.4pp |
+
+The split beats the equal-weight universe in 7 of 8 years (the weekly sleeve: 6 of 8); the one loss is 2020. Against KOSPI200 it wins 4 of 8 and lags in the strongest up-markets (2020, 2025, 2026).
 
 These are backtest results; the split has not been traded yet, and the daily sleeve has no live record.
 
@@ -96,15 +100,17 @@ These are backtest results; the split has not been traded yet, and the daily sle
 
 The headline CAGR comparison above isn't apples-to-apples on its own — buy-and-hold is always 100% invested, and a lower-drawdown strategy that's just sitting in cash more often isn't actually more skillful. These numbers are here to close that gap:
 
-| | Value |
-|---|---|
-| Average cash allocation | 46.4% (i.e. ~53.6% average market exposure) |
-| Annualized Sharpe ratio | 1.52 |
-| Total trades (2019–2026) | 449 |
-| Win rate | 43.7% |
-| Average hold time | 12.2 trading days |
-| Equal-weight universe benchmark (avg. return of all PIT KOSPI200 members, 2019–2026) | 2.04× cumulative |
-| Cost sensitivity: CAGR at 2× assumed slippage (0.41% → 0.61% round-trip) | 28.53% (vs. 31.36% base) |
+| | Weekly sleeve | Daily sleeve† | 50/50 split† |
+|---|---|---|---|
+| Average cash allocation | 46.4% (i.e. ~53.6% average market exposure) | 44.4% | 45.2% |
+| Annualized Sharpe ratio | 1.52 | 0.96 | 1.46 |
+| Total trades (2019–2026) | 449 | 346 | 796 (both sleeves) |
+| Win rate | 43.7% | 41.5% | 42.8% |
+| Average hold time | 12.2 trading days | 12.0 | 12.1 |
+| Average return per trade | +2.21% | +1.94% | +2.10% |
+| Cost sensitivity: CAGR at 2× assumed slippage (0.41% → 0.61% round-trip) | 28.53% (vs. 31.36% base) | 20.3% (vs. 23.0%) | 25.7% (vs. 28.5%) |
+
+† Mean over eight backtest runs (four seed combinations × two rule-selection criteria). The equal-weight universe benchmark (avg. return of all PIT KOSPI200 members, 2019–2026) is 2.04× cumulative for all columns. Doubling the slippage assumption costs 2.7–2.8 points of CAGR in all three configurations, so none is unusually cost-sensitive.
 
 A few of these are worth reading correctly rather than at face value:
 
@@ -134,11 +140,23 @@ Commission-only cost (this ETF is exempt from Korea's securities transaction tax
 
 ### Statistical robustness checks
 
+**Validation summary**
+
+| Check | Weekly sleeve | Daily sleeve | 50/50 split |
+|---|---|---|---|
+| Random-signal test (CAGR beats N of 1,000 random runs) | 1,000 (best random run 25.6%) | 998 (best random run 31.8%; p ≈ 0.003) | not run as a whole; the two sleeves are tested separately |
+| Realized MDD vs. 5,000 reshuffled orderings (percentile; lower = unluckier path) | 12th | not run | 18th (individual runs 7th–38th) |
+| CAGR with 2× slippage (change) | 28.5% (−2.8pp) | 20.3% (−2.7pp) | 25.7% (−2.8pp) |
+| Years beating the equal-weight universe | 6 of 8 | 4 of 8 | 7 of 8 |
+| Years beating KOSPI200 | 5 of 8 | 4 of 8 | 4 of 8 |
+
+The daily sleeve and split figures are means over eight backtest runs.
+
 Two Monte Carlo-style checks, run to address a more basic question than anything above: is any of this distinguishable from noise?
 
 *(Both checks below are re-run against the walk-forward-validated schedule above — 449 trades, 31.36% CAGR.)*
 
-Both checks below were run on the weekly sleeve only (449 trades, 31.36% CAGR). They have not been repeated for the daily sleeve or the 50/50 split.
+The two checks below were first run on the weekly sleeve (449 trades, 31.36% CAGR). The matching results for the 50/50 split (order reshuffling) and the daily sleeve (random-signal test) follow each of them. The random-signal test was not run on the split as a whole; its two sleeves are tested separately.
 
 **1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, 1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
 
@@ -151,6 +169,8 @@ Both checks below were run on the weekly sleeve only (449 trades, 31.36% CAGR). 
 
 The realized drawdown path was on the unlucky side — most reorderings of the exact same trades would have produced a smaller drawdown. Read this as "the CAGR isn't sequencing-dependent, but the specific -27.7% MDD partly is."
 
+**50/50 split.** Same reshuffling on the split (the mean of the eight backtest runs, 1,886 daily returns, 5,000 orderings): the realized MDD of −24.1% sits at the 18th percentile of the reshuffled distribution (mean −20.35%, 5th/95th percentile −28.6% / −14.4%); across the eight individual runs the percentile averages 23 (range 7–38). As with the weekly sleeve, the realized path was somewhat on the unlucky side, though less so (weekly: 12th percentile).
+
 **2. Signal permutation test — is Agent Cx's stock selection distinguishable from random?** Agent B's pool and every risk/position-sizing rule were left untouched; only Agent Cx's score was replaced with random noise (same per-day pass rate as the real percentile gate, so trade frequency is comparable — only *which* names pass is randomized). Reran the full backtest 1,000 times:
 
 | | Value |
@@ -162,6 +182,8 @@ The realized drawdown path was on the unlucky side — most reorderings of the e
 | Random-signal MDD — mean / median | -30.11% / -28.90% |
 
 The real signal's CAGR clears every one of 1,000 random permutations — not marginal. MDD is more informative here than in the earlier (fixed-parameter) version of this test: the actual -27.7% is better than both the random mean and median (571 of 1,000 random runs had a worse drawdown), suggesting drawdown control here comes from a mix of the risk-management structure (regime filter, sector caps, stop losses — which stays fixed either way) *and* some contribution from stock selection itself, not purely the former. The return, in any case, comes overwhelmingly from Agent Cx actually picking the right names.
+
+**Daily sleeve.** The CNN-LSTM gate score was replaced with random noise at the same per-day pass rate; the ranker pool and every risk rule were left untouched; 1,000 runs (ranker ensemble with the seed group that was not used for tuning, rules fixed). Random-signal CAGR: mean 7.75%, 95th percentile 17.1%, 99th percentile 21.5%, maximum 31.8%. The real CAGR of 26.8% exceeds 998 of the 1,000 random runs (p ≈ 0.003), and the real MDD of −21.5% is better than 992 of them. This configuration is on the high side of the four fixed-rule configurations; for their average (24.4%), 3 of 1,000 random runs match or exceed it, and for the weakest (20.5%), 16 of 1,000. The evidence is slightly weaker than for the weekly sleeve (which beat all 1,000 runs) but still clear.
 
 One honest caveat: both permutation runs isolate signal quality specifically — they don't speak to whether the risk-management parameter *selection* process itself is sound. That's a separate question, addressed by the walk-forward validation in [Methodology](#methodology--what-makes-this-credible-or-not) and the candidate-count sensitivity noted in [Limitations](#limitations).
 
