@@ -138,6 +138,8 @@ Two Monte Carlo-style checks, run to address a more basic question than anything
 
 *(Both checks below are re-run against the walk-forward-validated schedule above — 449 trades, 31.36% CAGR.)*
 
+Both checks below were run on the weekly sleeve only (449 trades, 31.36% CAGR). They have not been repeated for the daily sleeve or the 50/50 split.
+
 **1. Trade-sequencing bootstrap — is the reported MDD a fluke of ordering?** The actual daily returns (same set, 1,886 trading days) were reshuffled into 5,000 random orderings and the max drawdown recomputed for each. Final cumulative return is identical across every reshuffle by construction (compounding a fixed multiset of returns is order-independent — a useful sanity check that this ran correctly), but MDD is entirely order-dependent:
 
 | | Value |
