@@ -8,14 +8,16 @@ This repo is a write-up of the methodology and validation discipline behind a lo
 
 ## Results (reference only — see caveat)
 
-| | Weekly sleeve (live) | Daily sleeve (planned) | 50/50 split (planned) | KOSPI200 buy & hold |
+From 2026-10-05 the operating model is a 50/50 split between the weekly sleeve and a second, daily sleeve; until then only the weekly sleeve is live. The daily sleeve is added to reduce the risk of depending on one random seed: the weekly sleeve's ranker is a single seed, while the daily sleeve averages many. In the backtests the split also has a shallower drawdown than the weekly sleeve alone.
+
+| | Weekly sleeve (live) | Daily sleeve (from 2026-10-05) | 50/50 split (from 2026-10-05) | KOSPI200 buy & hold |
 |---|---|---|---|---|
 | CAGR (2019–2026 YTD) | **31.36%**\* | **23.0%** | **28.5%** | 22.30% |
 | Max drawdown | **-27.7%** | **-25.5%** | **-25.0%** | -40.8% |
 | CAGR / \|MDD\| | **1.13** | **0.90** | **1.14** | 0.55 |
 | Cumulative | **8.11×** | **5.1×** | **6.9×** | 4.68× |
 
-\* Single-seed result. The daily sleeve and split figures are multi-seed backtests with the trading rules selected by walk-forward (mean of two scoring criteria; the cumulative figures are means over four seed combinations × two criteria, ranging 3.0–7.4× for the daily sleeve and 5.6–8.5× for the split); both are planned for 2026-10-05 and have no live record. They are described below.
+\* Single-seed result. The daily sleeve and split figures are multi-seed backtests with the trading rules selected by walk-forward (mean of two scoring criteria; the cumulative figures are means over four seed combinations × two criteria, ranging 3.0–7.4× for the daily sleeve and 5.6–8.5× for the split); both start on 2026-10-05 and have no live record yet. They are described below.
 
 **This is the walk-forward-validated number, not a full-period grid search.** The risk-management parameters (regime filter, re-entry cooldown, gate threshold, position sizing) were selected honestly — for each year, using only data from years strictly before it — and re-derived the same values from 2022 onward without ever seeing that year's own data. A separate, single full-period grid search (which *does* see the whole 2019–2026 window at once) lands on the same 2022–2026 parameters but reports a higher, look-ahead-inflated 32.48% CAGR / 1.17 — see [Methodology](#methodology--what-makes-this-credible-or-not) for both numbers and why the gap between them is informative.
 
@@ -68,7 +70,7 @@ A second variant that does not depend on a single random seed, and trades every 
 
 ### Adding the daily sleeve on 2026-10-05
 
-The system has been live with the weekly sleeve since 2026-09-21. On **2026-10-05 the daily sleeve will be added**, and the capital will be split 50/50 between the two sleeves, tracked as two ledgers inside one brokerage account.
+The system has been live with the weekly sleeve since 2026-09-21. On **2026-10-05 the daily sleeve will be added**, and the capital will be split 50/50 between the two sleeves, tracked as two ledgers inside one brokerage account. The purpose is to reduce the variation that comes from relying on one random seed: the weekly sleeve's ranker and gate are single models, while the daily sleeve averages many seeds.
 
 - **Weekly sleeve:** scores are computed on **Friday's close and orders are placed only at Monday's open** (93% of entries). Single-seed ranker.
 - **Daily sleeve:** the seed-averaged variant above. It is scored and traded every trading day: signals are computed after each day's close and orders go in at the next trading day's open.
