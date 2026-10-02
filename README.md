@@ -217,8 +217,7 @@ flowchart TD
 flowchart LR
     CAP["Capital<br/>two ledgers in one brokerage account<br/>split 50 / 50"] --> W["Weekly sleeve"]
     CAP --> D["Daily sleeve"]
-    W --> REB["Once a year: rebalance the ledgers back to 50 / 50<br/>(limited to the donor ledger's free cash)"]
-    D --> REB
+    W <-.->|"once a year: rebalance to 50 / 50, donor free cash only"| D
     W --> CASH["Idle cash"]
     D --> CASH
     CASH --> PARK["Parked in a money-market-rate ETF"]
