@@ -60,13 +60,22 @@ A second variant that does not depend on a single random seed, and trades every 
 
 **Trading rules.** With the rules fixed across all years (chosen from the full-period results), the variant returns **24.4% CAGR (range 20.5–26.8% across four seed combinations), −24.8% MDD**. The four combinations are two independent ranker ensembles × two CNN-LSTM seed groups (the seeds used while tuning, and a group never used for tuning). When the rules themselves are also selected by walk-forward each year from a fixed candidate set, scored on prior-year results only, the four-combination mean is **22.1% (scored on excess return over the universe) or 23.9% (scored on return/drawdown efficiency); we report the average, about 23%**.
 
-| Year | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 YTD |
-|---|---|---|---|---|---|---|---|---|
-| Daily sleeve, rules selected by walk-forward (mean of the two criteria) | −4.4% | 16.5% | 13.2% | 28.7% | 79.4% | 11.8% | 34.3% | 14.9% |
-| Daily sleeve, rules fixed | −7.0% | 20.8% | 3.2% | 42.4% | 91.1% | 4.4% | 42.5% | 15.0% |
-| KOSPI200 | 15.8% | 35.6% | 3.0% | −24.2% | 24.9% | −9.4% | 94.2% | 73.8% |
+Same format as the weekly table above. The daily sleeve column is the mean of the eight backtest runs, with the trading rules selected by walk-forward (mean of the two scoring criteria):
 
-2019–2020 use a fixed starting rule set (no earlier years to select from). The variant beats KOSPI200 in four of eight years (2021–2024) and lags in strong up-markets (2019, 2020, 2025, 2026).
+| Year | Daily sleeve | KOSPI200 | Excess vs. KOSPI200 | Universe (equal-weight) | Excess vs. universe |
+|---|---|---|---|---|---|
+| 2019 | -4.4% | +15.8% | -20.2pp | -1.2% | -3.2pp |
+| 2020 | +16.5% | +35.6% | -19.1pp | +27.4% | -10.9pp |
+| 2021 | +13.2% | +3.0% | +10.2pp | +8.4% | +4.8pp |
+| 2022 | +28.7% | -24.2% | +52.9pp | -18.2% | +46.9pp |
+| 2023 | +79.4% | +24.9% | +54.5pp | +9.3% | +70.1pp |
+| 2024 | +11.8% | -9.4% | +21.2pp | -4.3% | +16.1pp |
+| 2025 | +34.3% | +94.2% | -59.9pp | +47.0% | -12.7pp |
+| 2026 (YTD, through Sep 4) | +14.9% | +73.8% | -58.9pp | +18.6% | -3.7pp |
+
+With the rules fixed across all years, the same sleeve returns -7.0%, +20.8%, +3.2%, +42.4%, +91.1%, +4.4%, +42.5% and +15.0% (2019 to 2026 YTD).
+
+2019–2020 use a fixed starting rule set (no earlier years to select from). The variant beats KOSPI200 in four of eight years (2021–2024) and the equal-weight universe in the same four; it lags in strong up-markets (2019, 2020, 2025, 2026).
 
 ### Adding the daily sleeve on 2026-10-05
 
@@ -85,12 +94,16 @@ The two sleeves were backtested together in a single engine (each starting with 
 | Split, daily-sleeve rules selected by walk-forward (mean of the two criteria) | **28.5%** (27.2–32.1%) | **−25.0%** |
 | Same, with idle-cash parking | 29.0% | −24.7% |
 
-| Year | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 YTD |
-|---|---|---|---|---|---|---|---|---|
-| Split (daily-sleeve rules by walk-forward) | 0.8% | 21.2% | 17.2% | 31.8% | 53.5% | 3.0% | 84.8% | 25.0% |
-| KOSPI200 | 15.8% | 35.6% | 3.0% | −24.2% | 24.9% | −9.4% | 94.2% | 73.8% |
-| Universe (equal-weight) | −1.2% | 27.4% | 8.4% | −18.2% | 9.3% | −4.3% | 47.0% | 18.6% |
-| Split excess vs. universe | +2.0pp | −6.2pp | +8.8pp | +50.0pp | +44.2pp | +7.3pp | +37.8pp | +6.4pp |
+| Year | 50/50 split | KOSPI200 | Excess vs. KOSPI200 | Universe (equal-weight) | Excess vs. universe |
+|---|---|---|---|---|---|
+| 2019 | +0.8% | +15.8% | -15.0pp | -1.2% | +2.0pp |
+| 2020 | +21.2% | +35.6% | -14.4pp | +27.4% | -6.2pp |
+| 2021 | +17.2% | +3.0% | +14.2pp | +8.4% | +8.8pp |
+| 2022 | +31.8% | -24.2% | +56.0pp | -18.2% | +50.0pp |
+| 2023 | +53.5% | +24.9% | +28.6pp | +9.3% | +44.2pp |
+| 2024 | +3.0% | -9.4% | +12.4pp | -4.3% | +7.3pp |
+| 2025 | +84.8% | +94.2% | -9.4pp | +47.0% | +37.8pp |
+| 2026 (YTD, through Sep 4) | +25.0% | +73.8% | -48.8pp | +18.6% | +6.4pp |
 
 The split beats the equal-weight universe in 7 of 8 years (the weekly sleeve: 6 of 8); the one loss is 2020. Against KOSPI200 it wins 4 of 8 and lags in the strongest up-markets (2020, 2025, 2026).
 
