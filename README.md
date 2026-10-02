@@ -175,17 +175,21 @@ The realized drawdown path was on the unlucky side — most reorderings of the e
 
 **2. Signal permutation test — is Agent Cx's stock selection distinguishable from random?** Agent B's pool and every risk/position-sizing rule were left untouched; only Agent Cx's score was replaced with random noise (same per-day pass rate as the real percentile gate, so trade frequency is comparable — only *which* names pass is randomized). Reran the full backtest 1,000 times:
 
-| | Value |
-|---|---|
-| Random-signal CAGR — mean / median | 8.89% / 8.77% |
-| Random-signal CAGR — 95th percentile | 16.18% |
-| Random-signal CAGR — max of 1,000 runs | 25.55% |
-| **Actual CAGR (31.36%) exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** |
-| Random-signal MDD — mean / median | -30.11% / -28.90% |
+| | Weekly sleeve | Daily sleeve† |
+|---|---|---|
+| Random-signal CAGR — mean / median | 8.89% / 8.77% | 7.75% / 7.40% |
+| Random-signal CAGR — 95th percentile | 16.18% | 17.06% |
+| Random-signal CAGR — max of 1,000 runs | 25.55% | 31.79% |
+| Actual CAGR | 31.36% | 26.8% |
+| **Actual CAGR exceeds runs out of 1,000** | **1,000 / 1,000 (p ≈ 0.0000)** | **998 / 1,000 (p ≈ 0.003)** |
+| Random-signal MDD — mean / median | -30.11% / -28.90% | -33.13% / -31.98% |
+| Actual MDD (random runs with a worse drawdown) | -27.7% (571 of 1,000) | -21.5% (992 of 1,000) |
+
+† The CNN-LSTM gate score was replaced with random noise at the same per-day pass rate; the ranker pool and every risk rule were left untouched. Ranker ensemble with the seed group that was not used for tuning, rules fixed.
 
 The real signal's CAGR clears every one of 1,000 random permutations — not marginal. MDD is more informative here than in the earlier (fixed-parameter) version of this test: the actual -27.7% is better than both the random mean and median (571 of 1,000 random runs had a worse drawdown), suggesting drawdown control here comes from a mix of the risk-management structure (regime filter, sector caps, stop losses — which stays fixed either way) *and* some contribution from stock selection itself, not purely the former. The return, in any case, comes overwhelmingly from Agent Cx actually picking the right names.
 
-**Daily sleeve.** The CNN-LSTM gate score was replaced with random noise at the same per-day pass rate; the ranker pool and every risk rule were left untouched; 1,000 runs (ranker ensemble with the seed group that was not used for tuning, rules fixed). Random-signal CAGR: mean 7.75%, 95th percentile 17.1%, 99th percentile 21.5%, maximum 31.8%. The real CAGR of 26.8% exceeds 998 of the 1,000 random runs (p ≈ 0.003), and the real MDD of −21.5% is better than 992 of them. This configuration is on the high side of the four fixed-rule configurations; for their average (24.4%), 3 of 1,000 random runs match or exceed it, and for the weakest (20.5%), 16 of 1,000. The evidence is slightly weaker than for the weekly sleeve (which beat all 1,000 runs) but still clear.
+**Daily sleeve.** The real CAGR clears 998 of 1,000 random runs, slightly weaker than the weekly sleeve (which beat all 1,000) but still clear. The configuration shown is on the high side of the four fixed-rule configurations: for their average (24.4%), 3 of 1,000 random runs match or exceed it, and for the weakest (20.5%), 16 of 1,000.
 
 One honest caveat: both permutation runs isolate signal quality specifically — they don't speak to whether the risk-management parameter *selection* process itself is sound. That's a separate question, addressed by the walk-forward validation in [Methodology](#methodology--what-makes-this-credible-or-not) and the candidate-count sensitivity noted in [Limitations](#limitations).
 
